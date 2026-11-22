@@ -1,0 +1,4104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personnage Cartoon - Monde 3D (Routes et Trottoirs)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #dbeafe;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-active {
+            background-color: #eab308 !important;
+            color: #0f172a !important;
+            border-color: #ca8a04 !important;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(234, 179, 8, 0.35);
+        }
+
+        @keyframes peelAndFall {
+            0% {
+                transform: translate(0px, 0px) rotate(0deg);
+                opacity: 1;
+            }
+            20% {
+                transform: translate(2px, -3px) rotate(-6deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(24px, 145px) rotate(52deg);
+                opacity: 0;
+            }
+        }
+
+        .sticker-fall {
+            animation: peelAndFall 0.95s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+            pointer-events: none;
+        }
+
+        #sticker-30ans {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Conteneur plein écran du monde 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- SVG source hors-écran utilisé pour générer dynamiquement la texture 3D -->
+    <div class="sr-only" aria-hidden="true">
+        <svg id="character-svg" viewBox="0 0 360 470" width="360" height="470" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="skinGrad" cx="55%" cy="42%" r="60%">
+                    <stop offset="0%" stop-color="#FFE6CC" />
+                    <stop offset="75%" stop-color="#FAD7B8" />
+                    <stop offset="100%" stop-color="#E7BA94" />
+                </radialGradient>
+
+                <linearGradient id="hoodieGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#D48D06" />
+                    <stop offset="28%" stop-color="#F1A70E" />
+                    <stop offset="72%" stop-color="#F4AE14" />
+                    <stop offset="100%" stop-color="#C88205" />
+                </linearGradient>
+
+                <linearGradient id="sleeveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#EFA50D" />
+                    <stop offset="100%" stop-color="#C98304" />
+                </linearGradient>
+
+                <linearGradient id="pantsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#0E49A1" />
+                    <stop offset="50%" stop-color="#1761C9" />
+                    <stop offset="100%" stop-color="#0B3B85" />
+                </linearGradient>
+
+                <clipPath id="headClip">
+                    <ellipse cx="180" cy="126" rx="74" ry="70" />
+                </clipPath>
+            </defs>
+
+            <!-- Jambes et chaussures -->
+            <g id="legs-group">
+                <rect x="148" y="328" width="21" height="106" fill="url(#pantsGrad)" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />
+                <rect x="191" y="328" width="21" height="106" fill="url(#pantsGrad)" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />
+
+                <path d="M 136 443 C 136 434, 145 431, 169 431 L 169 443 Z" fill="#F1F5F9" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                <path d="M 191 443 L 191 431 C 215 431, 224 434, 224 443 Z" fill="#F1F5F9" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+
+                <rect x="134" y="311" width="92" height="24" rx="12" fill="url(#pantsGrad)" stroke="#0A0A0A" stroke-width="5.5" />
+            </g>
+
+            <!-- Torse et sweat à capuche -->
+            <g id="torso-group">
+                <path d="M 134 186 C 122 192, 120 207, 132 213 Z" fill="#C68004" stroke="#0A0A0A" stroke-width="5" stroke-linejoin="round" />
+                <path d="M 226 186 C 238 192, 240 207, 228 213 Z" fill="#C68004" stroke="#0A0A0A" stroke-width="5" stroke-linejoin="round" />
+
+                <rect x="129" y="182" width="102" height="142" rx="51" fill="url(#hoodieGrad)" stroke="#0A0A0A" stroke-width="6" />
+
+                <line x1="168" y1="194" x2="168" y2="233" stroke="#FFFBEB" stroke-width="4.2" stroke-linecap="round" />
+                <line x1="192" y1="194" x2="192" y2="233" stroke="#FFFBEB" stroke-width="4.2" stroke-linecap="round" />
+
+                <polygon points="152,205 155,212 162,213 157,218 158,225 152,221 146,225 147,218 142,213 149,212"
+                         fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.2" stroke-linejoin="round" />
+
+                <rect x="152" y="276" width="56" height="32" rx="14" fill="#DF9508" stroke="#0A0A0A" stroke-width="4.5" />
+            </g>
+
+            <!-- Variantes de bras -->
+            <g id="arms-crossed">
+                <path d="M 131 215 C 94 234, 92 266, 134 266 L 204 266" fill="none" stroke="#0A0A0A" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 131 215 C 94 234, 92 266, 134 266 L 204 266" fill="none" stroke="url(#sleeveGrad)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="209" cy="252" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.8" />
+
+                <path d="M 229 215 C 266 234, 268 266, 226 266 L 154 266" fill="none" stroke="#0A0A0A" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 229 215 C 266 234, 268 266, 226 266 L 154 266" fill="none" stroke="url(#sleeveGrad)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="148" cy="253" r="10.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+            </g>
+
+            <g id="arms-neutral" class="hidden">
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="104" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+
+                <path d="M 229 215 C 250 236, 258 276, 256 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 229 215 C 250 236, 258 276, 256 314" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="256" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+            </g>
+
+            <g id="arms-idcard" class="hidden">
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="104" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+
+                <path d="M 228 214 C 266 238, 274 226, 256 184" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 228 214 C 266 238, 274 226, 256 184" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="254" cy="179" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+
+                <g transform="translate(212, 134)">
+                    <rect x="0" y="0" width="84" height="52" rx="5" fill="#F8FAFC" stroke="#1E3A8A" stroke-width="2" />
+                    <path d="M 1 5 C 1 2.5, 2.5 1, 5 1 L 79 1 C 81.5 1, 83 2.5, 83 5 L 83 10 L 1 10 Z" fill="#1D4ED8" />
+                    <line x1="20" y1="5.5" x2="64" y2="5.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
+
+                    <rect x="6" y="14" width="23" height="31" rx="2" fill="#FEF3C7" stroke="#94A3B8" stroke-width="1.2" />
+                    <circle cx="17.5" cy="24" r="5.5" fill="#FAD7B8" stroke="#92400E" stroke-width="1" />
+                    <path d="M 12 22 C 13 18, 22 18, 23 22 Z" fill="#D97706" />
+                    <path d="M 11 44 C 11 35, 24 35, 24 44 Z" fill="#F59E0B" />
+
+                    <line x1="34" y1="18" x2="76" y2="18" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" />
+                    <line x1="34" y1="24" x2="68" y2="24" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" />
+                    <line x1="34" y1="30" x2="74" y2="30" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" />
+
+                    <text x="56" y="43" font-family="Inter, sans-serif" font-weight="800" font-size="11.5" fill="#1D4ED8" text-anchor="middle" letter-spacing="0.4">12 ANS</text>
+
+                    <g id="sticker-30ans" onclick="revealRealAgeIn3D(event)">
+                        <rect x="33" y="33" width="46" height="14" rx="2" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="0.8" stroke-dasharray="2 1" />
+                        <text x="56" y="43" font-family="Inter, sans-serif" font-weight="800" font-size="11.5" fill="#DC2626" text-anchor="middle" letter-spacing="0.4">30 ANS</text>
+                    </g>
+                </g>
+            </g>
+
+            <g id="arms-mug" class="hidden">
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="104" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+
+                <path d="M 227 216 C 262 246, 260 264, 232 228" fill="none" stroke="#0A0A0A" stroke-width="26" stroke-linecap="round" />
+                <path d="M 227 216 C 262 246, 260 264, 232 228" fill="none" stroke="url(#sleeveGrad)" stroke-width="15.5" stroke-linecap="round" />
+
+                <g transform="translate(201, 214)">
+                    <path d="M 22 6 C 30 6, 30 20, 22 20" fill="none" stroke="#0A0A0A" stroke-width="3.5" />
+                    <rect x="0" y="0" width="23" height="27" rx="4" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.5" />
+                    <line x1="3" y1="8" x2="20" y2="8" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round" />
+                    <path d="M 11 -4 C 8 -9, 14 -13, 11 -18" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.9" />
+                </g>
+                <circle cx="229" cy="225" r="7.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.2" />
+            </g>
+
+            <g id="arms-photo" class="hidden">
+                <path d="M 131 216 C 102 238, 94 268, 114 272 C 128 275, 138 256, 146 244" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 131 216 C 102 238, 94 268, 114 272 C 128 275, 138 256, 146 244" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+
+                <path d="M 229 216 C 258 238, 266 268, 246 272 C 232 275, 222 256, 214 244" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 229 216 C 258 238, 266 268, 246 272 C 232 275, 222 256, 214 244" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+
+                <g transform="translate(141, 188)">
+                    <rect x="0" y="0" width="78" height="94" rx="2" fill="#854D0E" stroke="#0A0A0A" stroke-width="4" />
+                    <rect x="9" y="9" width="60" height="76" fill="#E0F2FE" stroke="#0A0A0A" stroke-width="2.5" />
+                    <circle cx="39" cy="23" r="9" fill="#6E310F" stroke="#0A0A0A" stroke-width="2.5" />
+                    <path d="M 23 39 C 23 24, 55 24, 55 39 Z" fill="#6E310F" stroke="#0A0A0A" stroke-width="2.5" />
+                    <circle cx="39" cy="43" r="16" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="2.5" />
+                    <circle cx="33" cy="41" r="2" fill="#0A0A0A" />
+                    <circle cx="45" cy="41" r="2" fill="#0A0A0A" />
+                    <path d="M 35 48 C 37 51, 41 51, 43 48" fill="none" stroke="#0A0A0A" stroke-width="2.2" stroke-linecap="round" />
+                    <ellipse cx="39" cy="80" rx="23" ry="15" fill="#059669" stroke="#0A0A0A" stroke-width="2.5" />
+                </g>
+            </g>
+
+            <g id="arms-piggy" class="hidden">
+                <path d="M 131 216 C 102 242, 102 272, 134 268 C 154 266, 174 252, 188 242" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 131 216 C 102 242, 102 272, 134 268 C 154 266, 174 252, 188 242" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+
+                <g transform="translate(118, 185) rotate(-14)">
+                    <rect x="26" y="4" width="12" height="15" rx="3" fill="#F9A8D4" stroke="#0A0A0A" stroke-width="4" />
+                    <rect x="74" y="4" width="12" height="15" rx="3" fill="#F9A8D4" stroke="#0A0A0A" stroke-width="4" />
+                    <ellipse cx="58" cy="44" rx="44" ry="31" fill="#F9A8D4" stroke="#0A0A0A" stroke-width="4.5" />
+                    <ellipse cx="14" cy="46" rx="11" ry="13" fill="#FBCFE8" stroke="#0A0A0A" stroke-width="4.2" />
+                    <circle cx="11" cy="43" r="2" fill="#0A0A0A" />
+                    <circle cx="11" cy="49" r="2" fill="#0A0A0A" />
+                    <path d="M 32 51 C 35 47, 39 47, 42 51" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round" />
+                    <ellipse cx="78" cy="70" rx="11" ry="8" fill="#F9A8D4" stroke="#0A0A0A" stroke-width="4" />
+                </g>
+
+                <path d="M 229 216 C 254 242, 248 274, 218 264 C 204 259, 198 250, 194 244" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 229 216 C 254 242, 248 274, 218 264 C 204 259, 198 250, 194 244" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="192" cy="242" r="8.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.5" />
+            </g>
+
+            <g id="arms-oneup" class="hidden">
+                <path d="M 131 215 C 106 232, 98 265, 102 292" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 131 215 C 106 232, 98 265, 102 292" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+
+                <path d="M 226 218 C 258 202, 275 162, 266 116" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 226 218 C 258 202, 275 162, 266 116" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="265" cy="108" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+            </g>
+
+            <g id="arms-hips" class="hidden">
+                <path d="M 131 215 C 94 226, 92 268, 128 296" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 131 215 C 94 226, 92 268, 128 296" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="131" cy="298" r="9" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.8" />
+
+                <path d="M 229 215 C 266 226, 268 268, 232 296" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 229 215 C 266 226, 268 268, 232 296" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="229" cy="298" r="9" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.8" />
+            </g>
+
+            <g id="arms-worried" class="hidden">
+                <path d="M 131 218 C 106 232, 102 208, 108 188" fill="none" stroke="#0A0A0A" stroke-width="25" stroke-linecap="round" />
+                <path d="M 131 218 C 106 232, 102 208, 108 188" fill="none" stroke="url(#sleeveGrad)" stroke-width="14.5" stroke-linecap="round" />
+                <circle cx="109" cy="182" r="8.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.5" />
+
+                <path d="M 229 218 C 254 232, 258 208, 252 188" fill="none" stroke="#0A0A0A" stroke-width="25" stroke-linecap="round" />
+                <path d="M 229 218 C 254 232, 258 208, 252 188" fill="none" stroke="url(#sleeveGrad)" stroke-width="14.5" stroke-linecap="round" />
+                <circle cx="251" cy="182" r="8.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.5" />
+            </g>
+
+            <g id="arms-raised" class="hidden">
+                <path d="M 131 216 C 95 206, 86 174, 96 144" fill="none" stroke="#0A0A0A" stroke-width="25" stroke-linecap="round" />
+                <path d="M 131 216 C 95 206, 86 174, 96 144" fill="none" stroke="url(#sleeveGrad)" stroke-width="14.5" stroke-linecap="round" />
+                <circle cx="98" cy="138" r="8.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.5" />
+
+                <path d="M 229 216 C 265 206, 274 174, 264 144" fill="none" stroke="#0A0A0A" stroke-width="25" stroke-linecap="round" />
+                <path d="M 229 216 C 265 206, 274 174, 264 144" fill="none" stroke="url(#sleeveGrad)" stroke-width="14.5" stroke-linecap="round" />
+                <circle cx="262" cy="138" r="8.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4.5" />
+            </g>
+
+            <!-- Bras tenant une épée -->
+            <g id="arms-sword" class="hidden">
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+                <circle cx="104" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+
+                <path d="M 228 215 C 258 212, 268 188, 256 164" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 228 215 C 258 212, 268 188, 256 164" fill="none" stroke="url(#sleeveGrad)" stroke-width="16" stroke-linecap="round" />
+
+                <g transform="translate(254, 158) rotate(-32)">
+                    <polygon points="0,-96 9,-16 -9,-16" fill="#E2E8F0" stroke="#0A0A0A" stroke-width="4.2" stroke-linejoin="round" />
+                    <line x1="0" y1="-84" x2="0" y2="-22" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" />
+                    <rect x="-18" y="-16" width="36" height="8" rx="3" fill="#F59E0B" stroke="#0A0A0A" stroke-width="4" />
+                    <rect x="-4.5" y="-8" width="9" height="22" rx="2.5" fill="#78350F" stroke="#0A0A0A" stroke-width="3.8" />
+                    <circle cx="0" cy="17" r="6" fill="#DC2626" stroke="#0A0A0A" stroke-width="3.5" />
+                </g>
+
+                <circle cx="255" cy="161" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+            </g>
+
+            <!-- Tête, cheveux et expressions -->
+            <g id="head-group">
+                <polygon points="103,104 106,89 121,94" fill="#8B4513" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                <polygon points="118,86 121,62 142,72" fill="#8B4513" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                <polygon points="145,66 157,41 178,61" fill="#8B4513" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                <polygon points="180,61 198,41 213,67" fill="#8B4513" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                <polygon points="215,72 238,61 241,87" fill="#8B4513" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                <polygon points="239,91 261,89 254,108" fill="#8B4513" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+
+                <ellipse cx="180" cy="126" rx="74" ry="70" fill="url(#skinGrad)" />
+
+                <g clip-path="url(#headClip)">
+                    <path d="M 96 45 L 264 45 L 264 98 L 243 111 L 224 98 L 205 116 L 185 101 L 166 113 L 146 105 L 128 123 L 109 111 L 96 118 Z"
+                          fill="#4A1E08" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />
+                    <path d="M 134 73 Q 180 86 226 71" fill="none" stroke="#6E310F" stroke-width="7.5" stroke-linecap="round" />
+                    <polygon points="103,104 114,104 114,126 103,131" fill="#2A1104" stroke="#0A0A0A" stroke-width="3.5" stroke-linejoin="round" />
+                    <polygon points="189,102 217,94 205,115" fill="#3B1706" stroke="#0A0A0A" stroke-width="4.2" stroke-linejoin="round" />
+                </g>
+
+                <ellipse cx="180" cy="126" rx="74" ry="70" fill="none" stroke="#0A0A0A" stroke-width="6.5" />
+
+                <g id="face-grumpy">
+                    <path d="M 146 132 L 173 129" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                    <path d="M 150 132 C 150 142, 169 141, 169 130 Z" fill="#0A0A0A" />
+                    <path d="M 186 128 L 215 126" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                    <path d="M 190 128 C 190 139, 209 138, 209 127 Z" fill="#0A0A0A" />
+                    <path id="mouth-grumpy" d="M 167 167 C 174 159, 187 159, 194 166" fill="none" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                </g>
+
+                <g id="face-happy" class="hidden">
+                    <path d="M 149 134 C 154 125, 168 125, 173 134" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" />
+                    <path d="M 187 134 C 192 125, 206 125, 211 134" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" />
+                    <path d="M 169 158 C 175 166, 185 166, 191 158" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" />
+                </g>
+
+                <g id="face-shocked" class="hidden">
+                    <circle cx="163" cy="133" r="11.5" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.5" />
+                    <circle cx="164" cy="133" r="2.6" fill="#0A0A0A" />
+                    <circle cx="197" cy="133" r="11.5" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.5" />
+                    <circle cx="196" cy="133" r="2.6" fill="#0A0A0A" />
+                    <ellipse cx="180" cy="164" rx="9" ry="12" fill="#4A0E0E" stroke="#0A0A0A" stroke-width="4" />
+                </g>
+
+                <g id="face-laughing" class="hidden">
+                    <line x1="152" y1="113" x2="173" y2="113" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <line x1="187" y1="113" x2="208" y2="113" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <path d="M 149 124 L 169 133 L 149 142" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 211 124 L 191 133 L 211 142" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 156 154 L 204 154 C 202 175, 158 175, 156 154 Z" fill="#591515" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                    <path d="M 160 156 L 200 156 L 198 160 L 162 160 Z" fill="#FFFFFF" />
+                    <ellipse cx="180" cy="168" rx="11" ry="5.5" fill="#F472B6" />
+                </g>
+
+                <g id="face-skeptical" class="hidden">
+                    <path d="M 189 113 C 196 107, 207 108, 212 115" fill="none" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <path d="M 146 134 L 173 131" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                    <path d="M 150 134 C 150 144, 169 143, 169 132 Z" fill="#0A0A0A" />
+                    <path d="M 186 130 L 215 128" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                    <path d="M 190 130 C 190 141, 209 140, 209 129 Z" fill="#0A0A0A" />
+                    <path d="M 167 167 C 174 159, 187 159, 194 166" fill="none" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                </g>
+
+                <g id="face-cool" class="hidden">
+                    <rect x="143" y="123" width="33" height="22" rx="6" fill="#0A0A0A" />
+                    <line x1="149" y1="128" x2="155" y2="128" stroke="#475569" stroke-width="2" stroke-linecap="round" />
+                    <line x1="175" y1="129" x2="185" y2="129" stroke="#0A0A0A" stroke-width="4.5" />
+                    <rect x="184" y="123" width="33" height="22" rx="6" fill="#0A0A0A" />
+                    <line x1="190" y1="128" x2="196" y2="128" stroke="#475569" stroke-width="2" stroke-linecap="round" />
+                    <path d="M 169 161 C 175 168, 185 168, 191 161" fill="none" stroke="#0A0A0A" stroke-width="5" stroke-linecap="round" />
+                </g>
+
+                <g id="face-sad" class="hidden">
+                    <line x1="154" y1="120" x2="171" y2="112" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <line x1="206" y1="120" x2="189" y2="112" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <ellipse cx="163" cy="135" rx="4.5" ry="7" fill="#0A0A0A" />
+                    <ellipse cx="197" cy="135" rx="4.5" ry="7" fill="#0A0A0A" />
+                    <path d="M 197 146 C 197 146, 191 155, 191 159 C 191 163, 194 165, 197 165 C 200 165, 203 163, 203 159 C 203 155, 197 146, 197 146 Z" fill="#7DD3FC" stroke="#0A0A0A" stroke-width="3" />
+                    <path d="M 167 171 C 174 163, 186 163, 193 171" fill="none" stroke="#0A0A0A" stroke-width="5" stroke-linecap="round" />
+                </g>
+
+                <g id="face-grimace" class="hidden">
+                    <line x1="154" y1="115" x2="172" y2="118" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <line x1="206" y1="115" x2="188" y2="118" stroke="#0A0A0A" stroke-width="4.5" stroke-linecap="round" />
+                    <path d="M 150 126 L 169 135 L 150 144" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 186 132 L 214 132" stroke="#0A0A0A" stroke-width="5.5" stroke-linecap="round" />
+                    <path d="M 190 132 C 190 142, 209 142, 209 132 Z" fill="#0A0A0A" />
+                    <rect x="160" y="154" width="40" height="14" rx="3" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="4" />
+                    <line x1="170" y1="154" x2="170" y2="168" stroke="#0A0A0A" stroke-width="2.5" />
+                    <line x1="180" y1="154" x2="180" y2="168" stroke="#0A0A0A" stroke-width="2.5" />
+                    <line x1="190" y1="154" x2="190" y2="168" stroke="#0A0A0A" stroke-width="2.5" />
+                </g>
+
+                <g id="face-joyful" class="hidden">
+                    <line x1="152" y1="115" x2="173" y2="115" stroke="#0A0A0A" stroke-width="4.8" stroke-linecap="round" />
+                    <line x1="187" y1="115" x2="208" y2="115" stroke="#0A0A0A" stroke-width="4.8" stroke-linecap="round" />
+                    <path d="M 149 136 C 154 126, 168 126, 173 136" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" />
+                    <path d="M 187 136 C 192 126, 206 126, 211 136" fill="none" stroke="#0A0A0A" stroke-width="5.2" stroke-linecap="round" />
+                    <path d="M 159 156 L 201 156 C 199 173, 161 173, 159 156 Z" fill="#591515" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                    <path d="M 163 158 L 197 158 L 195 161 L 165 161 Z" fill="#FFFFFF" />
+                </g>
+
+                <g id="face-determined" class="hidden">
+                    <line x1="152" y1="112" x2="173" y2="121" stroke="#0A0A0A" stroke-width="5" stroke-linecap="round" />
+                    <line x1="208" y1="112" x2="187" y2="121" stroke="#0A0A0A" stroke-width="5" stroke-linecap="round" />
+                    <ellipse cx="163" cy="135" rx="5" ry="7.5" fill="#0A0A0A" />
+                    <ellipse cx="197" cy="135" rx="5" ry="7.5" fill="#0A0A0A" />
+                    <path d="M 169 160 C 175 167, 185 167, 191 160" fill="none" stroke="#0A0A0A" stroke-width="5" stroke-linecap="round" />
+                </g>
+
+                <g id="face-worried" class="hidden">
+                    <path d="M 244 103 C 244 103, 238 112, 238 116 C 238 120, 241 122, 244 122 C 247 122, 250 120, 250 116 C 250 112, 244 103, 244 103 Z" fill="#7DD3FC" stroke="#0A0A0A" stroke-width="3" />
+                    <ellipse cx="164" cy="135" rx="4.5" ry="6.5" fill="#0A0A0A" />
+                    <ellipse cx="196" cy="135" rx="4.5" ry="6.5" fill="#0A0A0A" />
+                    <path d="M 167 164 Q 171 160, 174 164 T 180 164 T 186 164 T 193 164" fill="none" stroke="#0A0A0A" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+                </g>
+            </g>
+        </svg>
+    </div>
+
+    <!-- Barre supérieure compacte -->
+    <header class="fixed top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div class="pointer-events-auto bg-white/90 backdrop-blur-md border border-white/80 shadow-md rounded-2xl px-4 py-2 flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span class="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight">Routes &amp; Trottoirs 3D</span>
+            <span class="hidden md:inline text-xs text-slate-500">• Cinéma, École, Grillages &amp; Stationnement • ZQSD / WASD / Flèches</span>
+        </div>
+
+        <div class="pointer-events-auto flex items-center gap-2">
+            <button id="toggle-inventory-btn" onclick="toggleInventory()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md rounded-2xl px-3.5 py-2 text-xs font-extrabold transition">
+                Inventaire
+            </button>
+            <button id="exit-vehicle-btn" onclick="exitCurrentVehicle()" class="hidden bg-rose-600 hover:bg-rose-700 text-white shadow-md rounded-2xl px-3.5 py-2 text-xs font-extrabold transition">
+                Descendre du véhicule
+            </button>
+            <button id="force-door-cinema-btn" onclick="forceCinemaDoorWithSword()" class="hidden bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-md rounded-2xl px-3.5 py-2 text-xs font-extrabold transition">
+                Forcer la porte avec l'épée
+            </button>
+            <button id="tranc-cinema-btn" onclick="trancAtCinemaWithSword()" class="hidden bg-rose-600 hover:bg-rose-700 text-white shadow-md rounded-2xl px-3.5 py-2 text-xs font-extrabold transition">
+                Tranc
+            </button>
+            <button id="show-id-btn" onclick="triggerIdCheckSequence()" class="hidden bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-md rounded-2xl px-3.5 py-2 text-xs font-extrabold transition">
+                Montrer la carte d'ID
+            </button>
+            <button onclick="resetCamera()" class="bg-white/90 hover:bg-white backdrop-blur-md border border-white/80 shadow-md rounded-2xl px-3.5 py-2 text-xs font-bold text-slate-800 transition">
+                Recentrer Caméra
+            </button>
+            <button id="toggle-panel-btn" onclick="togglePanel()" class="bg-slate-900 hover:bg-slate-800 text-white shadow-md rounded-2xl px-3.5 py-2 text-xs font-bold transition">
+                Émotions
+            </button>
+        </div>
+    </header>
+
+    <!-- Panneau d'inventaire -->
+    <aside id="inventory-panel" class="hidden fixed top-16 left-3 z-20 w-72 bg-white/94 backdrop-blur-md border border-white/80 shadow-xl rounded-3xl p-4 transition-all">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-extrabold text-slate-900">Inventaire</h2>
+            <div class="flex items-center gap-1.5">
+                <span id="inventory-selected-label" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                    Aucun objet
+                </span>
+                <button onclick="toggleInventory()" title="Fermer l'inventaire" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold flex items-center justify-center transition">
+                    ✕
+                </button>
+            </div>
+        </div>
+        <p class="text-[11px] text-slate-500 mb-3 leading-snug">
+            Sélectionnez un objet pour l'équiper sur le personnage ou déclencher le contrôle d'ID au cinéma.
+        </p>
+
+        <div id="inventory-item-selector" class="grid grid-cols-2 gap-2">
+            <button id="inv-item-idcard" onclick="useInventoryItem('idcard')" class="inv-item-btn text-left p-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 transition">
+                <div class="text-xs font-extrabold text-slate-900">Carte d'ID</div>
+                <div class="text-[10px] text-slate-500">Badge « 30 ANS »</div>
+            </button>
+            <button id="inv-item-photo" onclick="useInventoryItem('photo')" class="inv-item-btn text-left p-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 transition">
+                <div class="text-xs font-extrabold text-slate-900">Cadre photo</div>
+                <div class="text-[10px] text-slate-500">Souvenir encadré</div>
+            </button>
+            <button id="inv-item-piggy" onclick="useInventoryItem('piggy')" class="inv-item-btn text-left p-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 transition">
+                <div class="text-xs font-extrabold text-slate-900">Tirelire cochon</div>
+                <div class="text-[10px] text-slate-500">Économies roses</div>
+            </button>
+            <button id="inv-item-mug" onclick="useInventoryItem('mug')" class="inv-item-btn text-left p-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 transition">
+                <div class="text-xs font-extrabold text-slate-900">Tasse café</div>
+                <div class="text-[10px] text-slate-500">Pause chaude</div>
+            </button>
+            <button id="inv-item-sword" onclick="useInventoryItem('sword')" class="inv-item-btn col-span-2 text-left p-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 transition">
+                <div class="text-xs font-extrabold text-slate-900">Épée</div>
+                <div class="text-[10px] text-slate-500">Lame en acier &amp; garde dorée</div>
+            </button>
+        </div>
+
+        <button onclick="clearInventorySelection()" class="mt-3 w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition">
+            Ranger l'objet (Mains libres)
+        </button>
+        <button id="toggle-selector-btn" onclick="toggleObjectSelector()" class="mt-2 w-full py-1.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition">
+            Masquer le sélecteur d'objet
+        </button>
+    </aside>
+
+    <!-- Bandeau de dialogue du cinéma -->
+    <div id="cinema-dialog-banner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-[92vw] max-w-xl bg-slate-950/92 text-white border border-slate-700/80 shadow-2xl rounded-2xl px-4 py-3.5 pointer-events-auto">
+        <div class="flex items-center gap-3.5">
+            <svg id="employee-2d-portrait" viewBox="0 0 120 140" class="w-14 h-16 shrink-0 rounded-xl bg-indigo-950 border border-indigo-700/60" aria-hidden="true">
+                <path d="M 22 136 C 24 102, 40 90, 60 90 C 80 90, 96 102, 98 136 Z" fill="#0F766E" stroke="#0A0A0A" stroke-width="4" stroke-linejoin="round" />
+                <polygon points="48,91 60,118 72,91" fill="#F8FAFC" stroke="#0A0A0A" stroke-width="3" stroke-linejoin="round" />
+                <polygon points="56,96 64,96 62,116 58,116" fill="#DC2626" />
+                <rect x="28" y="106" width="24" height="11" rx="2" fill="#FDE68A" stroke="#0A0A0A" stroke-width="2" />
+                <line x1="32" y1="111" x2="48" y2="111" stroke="#0F172A" stroke-width="2" stroke-linecap="round" />
+                <circle cx="60" cy="56" r="28" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="4" />
+                <path d="M 31 52 C 30 22, 90 22, 89 52 C 84 36, 74 34, 60 36 C 45 34, 35 37, 31 52 Z" fill="#451A03" stroke="#0A0A0A" stroke-width="3.5" stroke-linejoin="round" />
+                <path d="M 35 48 C 24 62, 26 80, 34 88" fill="none" stroke="#451A03" stroke-width="9" stroke-linecap="round" />
+                <path d="M 85 48 C 96 62, 94 80, 86 88" fill="none" stroke="#451A03" stroke-width="9" stroke-linecap="round" />
+                <circle cx="49" cy="57" r="3.4" fill="#0F172A" />
+                <circle cx="71" cy="57" r="3.4" fill="#0F172A" />
+                <path d="M 43 49 L 54 51" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round" />
+                <path d="M 77 49 L 66 51" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round" />
+                <path d="M 52 70 Q 60 76 68 70" fill="none" stroke="#0A0A0A" stroke-width="3.2" stroke-linecap="round" />
+            </svg>
+            <div class="flex-1 text-center sm:text-left">
+                <div id="cinema-dialog-speaker" class="text-[11px] font-extrabold uppercase tracking-wider text-amber-400 mb-1">
+                    Employée du Cinéma
+                </div>
+                <div id="cinema-dialog-text" class="text-xs sm:text-sm font-semibold leading-snug"></div>
+                <div id="cinema-failed-stamp" class="hidden mt-2 inline-block px-3 py-1 rounded-lg bg-rose-600 text-white text-xs font-black tracking-widest uppercase">
+                    FAILED MISERABLY
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panneau flottant des 10 émotions -->
+    <aside id="control-panel" class="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:top-16 sm:bottom-auto sm:w-80 z-20 bg-white/92 backdrop-blur-md border border-white/80 shadow-xl rounded-3xl p-4 max-h-[65vh] sm:max-h-[calc(100vh-5rem)] overflow-y-auto transition-all">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-extrabold text-slate-900">10 Émotions</h2>
+            <span id="status-badge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900">
+                1. Boudeur
+            </span>
+        </div>
+
+        <p class="text-[11px] text-slate-500 mb-3 leading-snug">
+            En mode « 2. Fier (Carte 30 ANS) », cliquez sur le bouton ci-dessous pour décoller « 30 ANS » et révéler « 12 ANS ».
+        </p>
+
+        <button id="peel-sticker-btn" onclick="revealRealAgeIn3D(event)" class="hidden w-full mb-3 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition">
+            Décoller l'autocollant « 30 ANS » !
+        </button>
+
+        <div class="grid grid-cols-2 gap-1.5 mb-3">
+            <button onclick="applyPreset('grumpy_crossed', this)" class="preset-btn btn-active text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                1. Boudeur (Bras croisés)
+            </button>
+            <button onclick="applyPreset('id_card', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                2. Fier (Carte 30 ANS)
+            </button>
+            <button onclick="applyPreset('skeptical_closeup', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                3. Sceptique (Agacé)
+            </button>
+            <button onclick="applyPreset('cool_shades', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                4. Cool (Lunettes noires)
+            </button>
+            <button onclick="applyPreset('sad_photo', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                5. Triste (Cadre photo)
+            </button>
+            <button onclick="applyPreset('grimace_piggy', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                6. Gêné (Tirelire cochon)
+            </button>
+            <button onclick="applyPreset('joyful_wave', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                7. Joyeux (Bras levé)
+            </button>
+            <button onclick="applyPreset('blasé_neutral', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                8. Blasé (Debout)
+            </button>
+            <button onclick="applyPreset('determined_hips', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                9. Déterminé (Hanches)
+            </button>
+            <button onclick="applyPreset('worried_sweat', this)" class="preset-btn text-left p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-[11px] font-semibold text-slate-700">
+                10. Inquiet (Sueur)
+            </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-200/80 mb-3">
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Visage</label>
+                <select id="select-face" onchange="updateCustom()" class="w-full p-1.5 rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-700">
+                    <option value="grumpy">1. Boudeur / Blasé</option>
+                    <option value="happy">2. Sourire yeux fermés</option>
+                    <option value="skeptical">3. Sceptique (sourcil)</option>
+                    <option value="cool">4. Lunettes de soleil</option>
+                    <option value="sad">5. Triste avec larme</option>
+                    <option value="grimace">6. Gêné dents serrées</option>
+                    <option value="joyful">7. Joyeux bouche ouverte</option>
+                    <option value="determined">8. Déterminé</option>
+                    <option value="worried">9. Inquiet + sueur</option>
+                    <option value="shocked">10. Choqué (O)</option>
+                    <option value="laughing">11. Rire (&gt; &lt;)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Posture</label>
+                <select id="select-arms" onchange="updateCustom()" class="w-full p-1.5 rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-700">
+                    <option value="crossed">Bras croisés</option>
+                    <option value="neutral">Le long du corps</option>
+                    <option value="idcard">Carte "30 ANS"</option>
+                    <option value="photo">Cadre photo</option>
+                    <option value="piggy">Tirelire cochon</option>
+                    <option value="oneup">Un bras levé</option>
+                    <option value="hips">Mains sur les hanches</option>
+                    <option value="worried">Mains levées inquiètes</option>
+                    <option value="mug">Tasse de café</option>
+                    <option value="raised">Deux bras levés</option>
+                    <option value="sword">Épée</option>
+                </select>
+            </div>
+        </div>
+
+        <button onclick="downloadSVG()" class="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold transition">
+            Télécharger le SVG (Transparent)
+        </button>
+    </aside>
+
+    <script>
+        // ==================== GESTION ÉMOTIONS & POSTURES SVG ====================
+        const faces = [
+            'face-grumpy', 'face-happy', 'face-shocked', 'face-laughing',
+            'face-skeptical', 'face-cool', 'face-sad', 'face-grimace',
+            'face-joyful', 'face-determined', 'face-worried'
+        ];
+        const arms = [
+            'arms-neutral', 'arms-crossed', 'arms-idcard', 'arms-mug',
+            'arms-raised', 'arms-photo', 'arms-piggy', 'arms-oneup',
+            'arms-hips', 'arms-worried', 'arms-sword'
+        ];
+
+        let isRenderingTexture = false;
+        let pendingTextureUpdate = false;
+        let stickerPeelTimer = null;
+        let isObjectSelectorHidden = false;
+
+        function updatePeelButtonVisibility() {
+            const peelBtn = document.getElementById('peel-sticker-btn');
+            const sticker = document.getElementById('sticker-30ans');
+            const armsSelect = document.getElementById('select-arms');
+            if (!peelBtn || !armsSelect) return;
+
+            const armsVal = armsSelect.value;
+            const isPeeled = Boolean(
+                sticker && (sticker.classList.contains('sticker-fall') || sticker.classList.contains('hidden'))
+            );
+
+            if (armsVal === 'idcard' && !isPeeled) {
+                peelBtn.classList.remove('hidden');
+            } else {
+                peelBtn.classList.add('hidden');
+            }
+        }
+
+        function setFace(faceType, flatMouth = false) {
+            faces.forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            const activeFace = document.getElementById('face-' + faceType);
+            if (activeFace) activeFace.classList.remove('hidden');
+
+            const mouthGrumpy = document.getElementById('mouth-grumpy');
+            if (mouthGrumpy) {
+                if (flatMouth) {
+                    mouthGrumpy.setAttribute('d', 'M 171 164 L 190 163');
+                } else {
+                    mouthGrumpy.setAttribute('d', 'M 167 167 C 174 159, 187 159, 194 166');
+                }
+            }
+
+            const selectFace = document.getElementById('select-face');
+            if (selectFace) selectFace.value = faceType;
+
+            syncSVGTo3DSprite();
+        }
+
+        function setArms(armType) {
+            arms.forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            const activeArm = document.getElementById('arms-' + armType);
+            if (activeArm) activeArm.classList.remove('hidden');
+
+            const selectArms = document.getElementById('select-arms');
+            if (selectArms) selectArms.value = armType;
+
+            if (armType === 'idcard') {
+                if (stickerPeelTimer) {
+                    clearTimeout(stickerPeelTimer);
+                    stickerPeelTimer = null;
+                }
+                const sticker = document.getElementById('sticker-30ans');
+                if (sticker) {
+                    sticker.classList.remove('sticker-fall');
+                    sticker.classList.remove('hidden');
+                }
+            }
+
+            updatePeelButtonVisibility();
+            syncSVGTo3DSprite();
+        }
+
+        function revealRealAgeIn3D(event) {
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
+
+            const sticker = document.getElementById('sticker-30ans');
+            if (!sticker || sticker.classList.contains('sticker-fall') || sticker.classList.contains('hidden')) {
+                return;
+            }
+
+            sticker.classList.add('sticker-fall');
+            updatePeelButtonVisibility();
+
+            if (stickerPeelTimer) {
+                clearTimeout(stickerPeelTimer);
+            }
+
+            stickerPeelTimer = setTimeout(() => {
+                sticker.classList.add('hidden');
+                syncSVGTo3DSprite();
+            }, 960);
+        }
+
+        function applyPreset(preset, btnElement) {
+            document.querySelectorAll('.preset-btn').forEach((b) => b.classList.remove('btn-active'));
+            if (btnElement) btnElement.classList.add('btn-active');
+
+            const badge = document.getElementById('status-badge');
+            if (badge && btnElement) {
+                badge.textContent = btnElement.textContent.trim();
+            }
+
+            switch (preset) {
+                case 'grumpy_crossed':
+                    setFace('grumpy', false);
+                    setArms('crossed');
+                    break;
+                case 'id_card':
+                    setFace('happy');
+                    setArms('idcard');
+                    break;
+                case 'skeptical_closeup':
+                    setFace('skeptical');
+                    setArms('crossed');
+                    break;
+                case 'cool_shades':
+                    setFace('cool');
+                    setArms('crossed');
+                    break;
+                case 'sad_photo':
+                    setFace('sad');
+                    setArms('photo');
+                    break;
+                case 'grimace_piggy':
+                    setFace('grimace');
+                    setArms('piggy');
+                    break;
+                case 'joyful_wave':
+                    setFace('joyful');
+                    setArms('oneup');
+                    break;
+                case 'blasé_neutral':
+                    setFace('grumpy', true);
+                    setArms('neutral');
+                    break;
+                case 'determined_hips':
+                    setFace('determined');
+                    setArms('hips');
+                    break;
+                case 'worried_sweat':
+                    setFace('worried');
+                    setArms('worried');
+                    break;
+                default:
+                    setFace('grumpy', false);
+                    setArms('crossed');
+                    break;
+            }
+        }
+
+        function updateCustom() {
+            document.querySelectorAll('.preset-btn').forEach((b) => b.classList.remove('btn-active'));
+            const faceVal = document.getElementById('select-face')?.value || 'grumpy';
+            const armsVal = document.getElementById('select-arms')?.value || 'crossed';
+            setFace(faceVal, false);
+            setArms(armsVal);
+        }
+
+        function buildCleanSVGString() {
+            const svgEl = document.getElementById('character-svg');
+            if (!svgEl) return '';
+
+            const clone = svgEl.cloneNode(true);
+            clone.querySelectorAll('.hidden, .sticker-fall').forEach((el) => el.remove());
+            clone.setAttribute('width', '720');
+            clone.setAttribute('height', '940');
+            return new XMLSerializer().serializeToString(clone);
+        }
+
+        function downloadSVG() {
+            try {
+                const svgString = buildCleanSVGString();
+                if (!svgString) return;
+
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'personnage-cartoon.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error('Erreur téléchargement SVG :', e);
+            }
+        }
+
+        function togglePanel() {
+            const panel = document.getElementById('control-panel');
+            if (panel) panel.classList.toggle('hidden');
+        }
+
+        function toggleInventory() {
+            const panel = document.getElementById('inventory-panel');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+
+            if (!panel.classList.contains('hidden')) {
+                const emotionsPanel = document.getElementById('control-panel');
+                if (emotionsPanel && window.innerWidth < 640) {
+                    emotionsPanel.classList.add('hidden');
+                }
+            }
+        }
+
+        function toggleObjectSelector() {
+            isObjectSelectorHidden = !isObjectSelectorHidden;
+            const selector = document.getElementById('inventory-item-selector');
+            const btn = document.getElementById('toggle-selector-btn');
+
+            if (selector) {
+                if (isObjectSelectorHidden) {
+                    selector.classList.add('hidden');
+                } else {
+                    selector.classList.remove('hidden');
+                }
+            }
+
+            if (btn) {
+                btn.textContent = isObjectSelectorHidden
+                    ? "Afficher le sélecteur d'objet"
+                    : "Masquer le sélecteur d'objet";
+            }
+
+            if (isObjectSelectorHidden) {
+                const panel = document.getElementById('inventory-panel');
+                if (panel) panel.classList.add('hidden');
+            }
+        }
+
+        function highlightInventoryItem(itemKey) {
+            document.querySelectorAll('.inv-item-btn').forEach((btn) => {
+                btn.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-50');
+            });
+
+            const label = document.getElementById('inventory-selected-label');
+            const names = {
+                idcard: "Carte d'ID",
+                photo: 'Cadre photo',
+                piggy: 'Tirelire cochon',
+                mug: 'Tasse café',
+                sword: 'Épée'
+            };
+
+            if (itemKey) {
+                const activeBtn = document.getElementById('inv-item-' + itemKey);
+                if (activeBtn) activeBtn.classList.add('ring-2', 'ring-amber-500', 'bg-amber-50');
+                if (label) label.textContent = names[itemKey] || itemKey;
+            } else if (label) {
+                label.textContent = 'Aucun objet';
+            }
+        }
+
+        function useInventoryItem(itemKey) {
+            highlightInventoryItem(itemKey);
+
+            if (itemKey === 'idcard') {
+                if (isInsideCinema && !failedSequenceActive) {
+                    triggerIdCheckSequence();
+                } else {
+                    setArms('idcard');
+                }
+            } else if (itemKey === 'photo') {
+                setArms('photo');
+            } else if (itemKey === 'piggy') {
+                setArms('piggy');
+            } else if (itemKey === 'mug') {
+                setArms('mug');
+            } else if (itemKey === 'sword') {
+                setArms('sword');
+                if (isInsideCinema) {
+                    setCinemaDialog(
+                        true,
+                        'Épée équipée au cinéma',
+                        'Choisissez une action en haut : « Forcer la porte » ou « Tranc ».',
+                        false
+                    );
+                }
+            }
+        }
+
+        function clearInventorySelection() {
+            highlightInventoryItem(null);
+            setArms('neutral');
+        }
+
+        // ==================== MONDE 3D, CINÉMA, MAISON, HABITANTS & ACTIONS ALÉATOIRES ====================
+        let scene = null;
+        let camera = null;
+        let renderer = null;
+        let characterGroup = null;
+        let characterSprite = null;
+        let shadowPlane = null;
+        let currentTexture = null;
+        let targetLookAt = new THREE.Vector3(6.5, 1.51, 6.5);
+        let lastFrameTime = 0;
+
+        const pressedKeys = new Set();
+        const MOVE_SPEED = 5.5;
+        const WORLD_BOUND = 68;
+        const SIDEWALK_TOP_Y = 0.16;
+        const ROAD_TOP_Y = 0.015;
+        const ROAD_HALF_WIDTH = 4.5;
+        const CHARACTER_RADIUS = 0.55;
+
+        let cinemaDoorPivot = null;
+        let cinemaInnerDoorPivot = null;
+        let cinemaInnerDoorWorldPos = new THREE.Vector3();
+        let cinemaEmployeeGroup = null;
+        let cinemaEmployeeSprite = null;
+        let cinemaEmployeeTexture = null;
+        let isInsideCinema = false;
+        let cinemaDoorWorldPos = new THREE.Vector3();
+        let cinemaInteriorSpawnPos = new THREE.Vector3();
+        let cinemaExteriorExitPos = new THREE.Vector3();
+        let cinemaEntryCooldown = 0;
+
+        let cinemaScreenMesh = null;
+        let cinemaScreenCanvas = null;
+        let cinemaScreenCtx = null;
+        let cinemaScreenTexture = null;
+        let cinemaFilmSpotlight = null;
+
+        let cinemaRoomUnlockedBySword = false;
+        let swordSlashTimer = null;
+        let swordSlashBeam = null;
+        let swordSlashBeamTimer = null;
+        let trancSequenceTimers = [];
+        const trancDrops = [];
+        const trancFloorDecals = [];
+        let policePeuLissesGroup = null;
+        let policePeuLissesArrived = false;
+        let policeArrestPhase = 'none';
+        let policeArrestTimer = 0;
+        let policeCarGroup = null;
+        let prisonCellGroup = null;
+        let savedPositionBeforeArrest = null;
+
+        let tvNewsAnchorGroup = null;
+        let tvNewsAnchorTimer = null;
+
+        const townResidents = [];
+        const randomResidentCars = [];
+        let randomResidentBubbleSprite = null;
+        let randomResidentBubbleTimer = null;
+
+        const usableVehicles = [];
+        let activeVehicle = null;
+        let carAgeDialogTimer = null;
+        const raycaster = new THREE.Raycaster();
+        const pointerNDC = new THREE.Vector2();
+        const tmpWorldPos = new THREE.Vector3();
+        const tmpWorldQuat = new THREE.Quaternion();
+        const tmpEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+        let idCheckPrompted = false;
+        let idCheckResolved = false;
+        let failedSequenceActive = false;
+        let failedSequenceTimer = 0;
+        let failedSequencePhase = 0;
+
+        const obstacles3D = [];
+
+        function registerBoxObstacle(cx, cz, width, depth, rotationY = 0, padding = 0) {
+            obstacles3D.push({
+                cx,
+                cz,
+                halfW: width / 2 + padding,
+                halfD: depth / 2 + padding,
+                rotY: rotationY
+            });
+        }
+
+        function resolveCircleBoxCollision(pos, radius, box) {
+            const dx = pos.x - box.cx;
+            const dz = pos.z - box.cz;
+
+            const cos = Math.cos(-box.rotY);
+            const sin = Math.sin(-box.rotY);
+            const localX = dx * cos - dz * sin;
+            const localZ = dx * sin + dz * cos;
+
+            const clampedX = Math.max(-box.halfW, Math.min(box.halfW, localX));
+            const clampedZ = Math.max(-box.halfD, Math.min(box.halfD, localZ));
+
+            const diffX = localX - clampedX;
+            const diffZ = localZ - clampedZ;
+            const distSq = diffX * diffX + diffZ * diffZ;
+
+            if (distSq < radius * radius) {
+                let pushLocalX = 0;
+                let pushLocalZ = 0;
+
+                if (distSq > 1e-8) {
+                    const dist = Math.sqrt(distSq);
+                    const overlap = radius - dist;
+                    pushLocalX = (diffX / dist) * overlap;
+                    pushLocalZ = (diffZ / dist) * overlap;
+                } else {
+                    const penX = box.halfW - Math.abs(localX);
+                    const penZ = box.halfD - Math.abs(localZ);
+                    if (penX < penZ) {
+                        pushLocalX = (localX >= 0 ? 1 : -1) * (penX + radius);
+                    } else {
+                        pushLocalZ = (localZ >= 0 ? 1 : -1) * (penZ + radius);
+                    }
+                }
+
+                const cosFwd = Math.cos(box.rotY);
+                const sinFwd = Math.sin(box.rotY);
+                pos.x += pushLocalX * cosFwd - pushLocalZ * sinFwd;
+                pos.z += pushLocalX * sinFwd + pushLocalZ * cosFwd;
+            }
+        }
+
+        function applyObstaclesCollision(pos, radius) {
+            for (let i = 0; i < obstacles3D.length; i++) {
+                resolveCircleBoxCollision(pos, radius, obstacles3D[i]);
+            }
+        }
+
+        let spherical = {
+            radius: 5.2,
+            theta: 0.35,
+            phi: 1.26
+        };
+
+        let isPointerDown = false;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+
+        function clearTrancEffects() {
+            trancSequenceTimers.forEach((id) => clearTimeout(id));
+            trancSequenceTimers = [];
+
+            policeArrestPhase = 'none';
+            policeArrestTimer = 0;
+            savedPositionBeforeArrest = null;
+
+            if (tvNewsAnchorTimer) {
+                clearTimeout(tvNewsAnchorTimer);
+                tvNewsAnchorTimer = null;
+            }
+            if (tvNewsAnchorGroup && scene) {
+                scene.remove(tvNewsAnchorGroup);
+                tvNewsAnchorGroup = null;
+            }
+
+            if (policePeuLissesGroup && scene) {
+                scene.remove(policePeuLissesGroup);
+                policePeuLissesGroup = null;
+            }
+            policePeuLissesArrived = false;
+
+            if (policeCarGroup && scene) {
+                scene.remove(policeCarGroup);
+                policeCarGroup = null;
+            }
+
+            if (prisonCellGroup && scene) {
+                scene.remove(prisonCellGroup);
+                prisonCellGroup = null;
+            }
+
+            while (trancDrops.length > 0) {
+                const drop = trancDrops.pop();
+                if (drop.mesh && scene) {
+                    scene.remove(drop.mesh);
+                    drop.mesh.geometry.dispose();
+                    drop.mesh.material.dispose();
+                }
+            }
+
+            while (trancFloorDecals.length > 0) {
+                const decal = trancFloorDecals.pop();
+                if (decal.mesh && scene) {
+                    scene.remove(decal.mesh);
+                    decal.mesh.geometry.dispose();
+                    decal.mesh.material.dispose();
+                }
+            }
+        }
+
+        function createCutTraceTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 512, 128);
+
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 14;
+            ctx.beginPath();
+            ctx.moveTo(28, 68);
+            ctx.bezierCurveTo(150, 44, 310, 82, 482, 54);
+            ctx.stroke();
+
+            for (let i = 0; i < 42; i++) {
+                const t = i / 41;
+                const x = 36 + t * 440;
+                const baseY = 66 + Math.sin(t * Math.PI * 1.4) * 14 - t * 10;
+                const burrLen = 6 + ((i * 19) % 22);
+                const burrDir = i % 2 === 0 ? -1 : 1;
+                const burrWidth = 2.5 + ((i * 7) % 5);
+
+                ctx.strokeStyle = i % 3 === 0 ? '#7f1d1d' : '#b91c1c';
+                ctx.lineWidth = burrWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, baseY);
+                ctx.lineTo(x + (burrLen * 0.45), baseY + burrDir * burrLen);
+                ctx.stroke();
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function spawnCutTraceOnTarget(worldTarget, bladeAxisDir) {
+            if (!scene) return;
+
+            const cutTex = createCutTraceTexture();
+            const cutGeo = new THREE.PlaneGeometry(1.15, 0.28);
+            const cutMat = new THREE.MeshBasicMaterial({
+                map: cutTex,
+                transparent: true,
+                opacity: 0.95,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            const cutMesh = new THREE.Mesh(cutGeo, cutMat);
+            cutMesh.position.set(worldTarget.x, worldTarget.y + 0.95, worldTarget.z + 0.06);
+            cutMesh.lookAt(
+                worldTarget.x + (camera ? camera.position.x - worldTarget.x : 0),
+                worldTarget.y + 0.95,
+                worldTarget.z + (camera ? camera.position.z - worldTarget.z : 1)
+            );
+            const bladeAngle = Math.atan2(bladeAxisDir.y, bladeAxisDir.x);
+            cutMesh.rotateZ(bladeAngle);
+            scene.add(cutMesh);
+
+            trancFloorDecals.push({
+                mesh: cutMesh,
+                age: 0,
+                maxAge: 7.5
+            });
+        }
+
+        function spawnBladeAxisJetAndDrops(startPos, bladeAxisDir) {
+            if (!scene) return;
+
+            const dirNorm = bladeAxisDir.clone().normalize();
+            const dropGeo = new THREE.SphereGeometry(0.045, 8, 8);
+
+            for (let i = 0; i < 16; i++) {
+                const spread = ((i - 7.5) / 8) * 0.16;
+                const velDir = new THREE.Vector3(
+                    dirNorm.x + spread * 0.45,
+                    dirNorm.y + 0.35 + ((i % 4) * 0.08),
+                    dirNorm.z + spread * 0.45
+                ).normalize();
+
+                const speed = 2.6 + (i % 5) * 0.55;
+                const dropMat = new THREE.MeshBasicMaterial({
+                    color: i % 2 === 0 ? 0x991b1b : 0xb91c1c,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                const dropMesh = new THREE.Mesh(dropGeo, dropMat);
+                dropMesh.position.copy(startPos).addScaledVector(dirNorm, 0.12 + (i % 3) * 0.06);
+                scene.add(dropMesh);
+
+                trancDrops.push({
+                    mesh: dropMesh,
+                    vel: velDir.multiplyScalar(speed),
+                    age: 0
+                });
+            }
+        }
+
+        function spawnFloorBloodDecal(x, z) {
+            if (!scene) return;
+            const floorY = getGroundHeightAt(x, z) + 0.022;
+            const radius = 0.09 + ((trancFloorDecals.length * 13) % 7) * 0.015;
+            const decalGeo = new THREE.CircleGeometry(radius, 14);
+            const decalMat = new THREE.MeshBasicMaterial({
+                color: 0x881337,
+                transparent: true,
+                opacity: 0.78,
+                depthWrite: false
+            });
+            const decalMesh = new THREE.Mesh(decalGeo, decalMat);
+            decalMesh.rotation.x = -Math.PI / 2;
+            decalMesh.position.set(x, floorY, z);
+            scene.add(decalMesh);
+
+            if (trancFloorDecals.length > 48) {
+                const oldest = trancFloorDecals.shift();
+                if (oldest && oldest.mesh) {
+                    scene.remove(oldest.mesh);
+                    oldest.mesh.geometry.dispose();
+                    oldest.mesh.material.dispose();
+                }
+            }
+
+            trancFloorDecals.push({
+                mesh: decalMesh,
+                age: 0,
+                maxAge: 8.0
+            });
+        }
+
+        function updateTrancParticlesAndDecals(dt) {
+            const gravity = 11.5;
+
+            for (let i = trancDrops.length - 1; i >= 0; i--) {
+                const drop = trancDrops[i];
+                drop.age += dt;
+                drop.vel.y -= gravity * dt;
+
+                drop.mesh.position.addScaledVector(drop.vel, dt);
+                drop.mesh.material.opacity = Math.max(0, 0.95 - drop.age * 0.9);
+
+                const groundY = getGroundHeightAt(drop.mesh.position.x, drop.mesh.position.z) + 0.03;
+                if (drop.mesh.position.y <= groundY || drop.age > 1.35) {
+                    if (drop.mesh.position.y <= groundY) {
+                        spawnFloorBloodDecal(drop.mesh.position.x, drop.mesh.position.z);
+                    }
+                    if (scene && drop.mesh) {
+                        scene.remove(drop.mesh);
+                        drop.mesh.geometry.dispose();
+                        drop.mesh.material.dispose();
+                    }
+                    trancDrops.splice(i, 1);
+                }
+            }
+
+            for (let i = trancFloorDecals.length - 1; i >= 0; i--) {
+                const decal = trancFloorDecals[i];
+                decal.age += dt;
+
+                if (decal.age >= decal.maxAge) {
+                    if (scene && decal.mesh) {
+                        scene.remove(decal.mesh);
+                        decal.mesh.geometry.dispose();
+                        decal.mesh.material.dispose();
+                        if (decal.mesh.material.map) {
+                            decal.mesh.material.map.dispose();
+                        }
+                    }
+                    trancFloorDecals.splice(i, 1);
+                } else if (decal.age > decal.maxAge * 0.6) {
+                    const fadeProgress = (decal.age - decal.maxAge * 0.6) / (decal.maxAge * 0.4);
+                    decal.mesh.material.opacity = Math.max(0, (1 - fadeProgress) * 0.78);
+                }
+            }
+        }
+
+        function createPolicePeuLissesSpriteTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 256, 300);
+
+            ctx.fillStyle = '#1d4ed8';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(46, 290);
+            ctx.quadraticCurveTo(54, 195, 128, 192);
+            ctx.quadraticCurveTo(202, 195, 210, 290);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(154, 232, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#FAD7B8';
+            ctx.beginPath();
+            ctx.arc(128, 122, 56, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(128, 114, 58, Math.PI * 0.96, Math.PI * 2.04);
+            ctx.lineTo(184, 108);
+            ctx.lineTo(72, 108);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(74, 48, 108, 22);
+            ctx.strokeRect(74, 48, 108, 22);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(66, 68, 124, 9);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(106, 124, 6.5, 0, Math.PI * 2);
+            ctx.arc(150, 124, 6.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(108, 148);
+            ctx.lineTo(148, 148);
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(14, 14, 228, 28);
+            ctx.fillStyle = '#facc15';
+            ctx.font = '900 13px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('POLICE DES PEU LISSES', 128, 28);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function createTvNewsAnchorSpriteTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 256, 300);
+
+            // Costume et cravate de présentateur TV
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#020617';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(44, 290);
+            ctx.quadraticCurveTo(52, 195, 128, 192);
+            ctx.quadraticCurveTo(204, 195, 212, 290);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.moveTo(100, 194);
+            ctx.lineTo(128, 248);
+            ctx.lineTo(156, 194);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.moveTo(122, 202);
+            ctx.lineTo(134, 202);
+            ctx.lineTo(131, 244);
+            ctx.lineTo(125, 244);
+            ctx.closePath();
+            ctx.fill();
+
+            // Tête et coiffure soignée
+            ctx.fillStyle = '#FAD7B8';
+            ctx.beginPath();
+            ctx.arc(128, 122, 55, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.arc(128, 112, 57, Math.PI * 0.96, Math.PI * 2.04);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Yeux et expression sérieuse
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(107, 124, 6, 0, Math.PI * 2);
+            ctx.arc(149, 124, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 4.5;
+            ctx.beginPath();
+            ctx.moveTo(110, 149);
+            ctx.lineTo(146, 149);
+            ctx.stroke();
+
+            // Bandeau "INFOS TV"
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(26, 14, 204, 28);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 14px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('ÉDITION SPÉCIALE TV', 128, 28);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function summonTvNewsAnchorForTranc(worldTarget) {
+            if (!scene) return;
+
+            if (tvNewsAnchorTimer) {
+                clearTimeout(tvNewsAnchorTimer);
+                tvNewsAnchorTimer = null;
+            }
+            if (tvNewsAnchorGroup) {
+                scene.remove(tvNewsAnchorGroup);
+                tvNewsAnchorGroup = null;
+            }
+
+            const group = new THREE.Group();
+            const tex = createTvNewsAnchorSpriteTexture();
+            const sprite = new THREE.Sprite(
+                new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: true })
+            );
+            sprite.scale.set(1.6, 1.88, 1);
+            sprite.position.set(0, 0.94, 0);
+            group.add(sprite);
+
+            const anchorPos = worldTarget.clone().add(new THREE.Vector3(1.5, 0, 1.35));
+            anchorPos.y = getGroundHeightAt(anchorPos.x, anchorPos.z);
+            group.position.copy(anchorPos);
+
+            scene.add(group);
+            tvNewsAnchorGroup = group;
+
+            setCinemaDialog(
+                true,
+                'Présentateur Nouvelles TV',
+                "En direct du cinéma : un incident « tranc » vient d'avoir lieu et la police des peu lisses est déjà sur place !",
+                false
+            );
+
+            tvNewsAnchorTimer = setTimeout(() => {
+                if (tvNewsAnchorGroup && scene) {
+                    scene.remove(tvNewsAnchorGroup);
+                    tvNewsAnchorGroup = null;
+                }
+                tvNewsAnchorTimer = null;
+            }, 6500);
+        }
+
+        function summonPolicePeuLissesAtCinema(worldTarget) {
+            if (!scene) return;
+            if (policePeuLissesGroup) {
+                scene.remove(policePeuLissesGroup);
+                policePeuLissesGroup = null;
+            }
+            if (policeCarGroup) {
+                scene.remove(policeCarGroup);
+                policeCarGroup = null;
+            }
+
+            const group = new THREE.Group();
+            const tex = createPolicePeuLissesSpriteTexture();
+            const sprite = new THREE.Sprite(
+                new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: true })
+            );
+            sprite.scale.set(1.65, 1.95, 1);
+            sprite.position.set(0, 0.98, 0);
+            group.add(sprite);
+
+            const sirenGeo = new THREE.SphereGeometry(0.11, 12, 12);
+            const sirenMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            const sirenMesh = new THREE.Mesh(sirenGeo, sirenMat);
+            sirenMesh.position.set(0, 2.05, 0);
+            group.add(sirenMesh);
+
+            const spawnPos = worldTarget.clone().add(new THREE.Vector3(-1.55, 0, 1.45));
+            spawnPos.y = getGroundHeightAt(spawnPos.x, spawnPos.z);
+            group.position.copy(spawnPos);
+            group.userData.sirenMat = sirenMat;
+
+            scene.add(group);
+            policePeuLissesGroup = group;
+            policePeuLissesArrived = true;
+
+            const car = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.3 });
+            const whiteStripeMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
+            const cabinMat = new THREE.MeshStandardMaterial({ color: 0x93c5fd, roughness: 0.2, metalness: 0.3 });
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.8 });
+
+            const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.56, 3.5), bodyMat);
+            chassis.position.set(0, 0.52, 0);
+            chassis.castShadow = true;
+            car.add(chassis);
+
+            const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.16, 3.52), whiteStripeMat);
+            stripe.position.set(0, 0.52, 0);
+            car.add(stripe);
+
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.46, 0.5, 1.75), cabinMat);
+            cabin.position.set(0, 1.0, -0.1);
+            cabin.castShadow = true;
+            car.add(cabin);
+
+            const lightBarMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+            const lightBar = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.14, 0.28), lightBarMat);
+            lightBar.position.set(0, 1.32, -0.05);
+            car.add(lightBar);
+
+            [
+                [-0.9, 0.34, 1.1],
+                [0.9, 0.34, 1.1],
+                [-0.9, 0.34, -1.1],
+                [0.9, 0.34, -1.1]
+            ].forEach(([wx, wy, wz]) => {
+                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.26, 16), wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(wx, wy, wz);
+                car.add(wheel);
+            });
+
+            const carPos = characterGroup
+                ? new THREE.Vector3(characterGroup.position.x + 2.4, 0, characterGroup.position.z + 2.4)
+                : worldTarget.clone().add(new THREE.Vector3(-2.4, 0, 2.4));
+            carPos.y = getGroundHeightAt(carPos.x, carPos.z);
+            car.position.copy(carPos);
+            car.userData.lightBarMat = lightBarMat;
+            scene.add(car);
+            policeCarGroup = car;
+
+            policeArrestPhase = 'following';
+            policeArrestTimer = 0;
+        }
+
+        function buildLifePrisonCell(centerPos) {
+            if (!scene) return;
+            if (prisonCellGroup) {
+                scene.remove(prisonCellGroup);
+                prisonCellGroup = null;
+            }
+
+            const cell = new THREE.Group();
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
+            const barMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3, metalness: 0.8 });
+
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.12, 7.5), floorMat);
+            floor.position.set(0, 0.06, 0);
+            floor.receiveShadow = true;
+            cell.add(floor);
+
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(7.5, 3.6, 0.25), wallMat);
+            backWall.position.set(0, 1.8, -3.6);
+            cell.add(backWall);
+
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.6, 7.5), wallMat);
+            leftWall.position.set(-3.6, 1.8, 0);
+            cell.add(leftWall);
+
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.6, 7.5), wallMat);
+            rightWall.position.set(3.6, 1.8, 0);
+            cell.add(rightWall);
+
+            for (let x = -3.0; x <= 3.0; x += 0.6) {
+                const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 3.4, 10), barMat);
+                bar.position.set(x, 1.7, 3.4);
+                bar.castShadow = true;
+                cell.add(bar);
+            }
+
+            cell.position.copy(centerPos);
+            scene.add(cell);
+            prisonCellGroup = cell;
+        }
+
+        function updatePoliceArrestSequence(dt, now) {
+            if (policeArrestPhase === 'none') return;
+
+            policeArrestTimer += dt;
+
+            if (policePeuLissesGroup && policePeuLissesGroup.userData && policePeuLissesGroup.userData.sirenMat) {
+                const blink = Math.floor(now / 150) % 2 === 0;
+                policePeuLissesGroup.userData.sirenMat.color.setHex(blink ? 0x38bdf8 : 0xf43f5e);
+            }
+            if (policeCarGroup && policeCarGroup.userData && policeCarGroup.userData.lightBarMat) {
+                const blink = Math.floor(now / 150) % 2 === 0;
+                policeCarGroup.userData.lightBarMat.color.setHex(blink ? 0xf43f5e : 0x38bdf8);
+            }
+
+            if (policeArrestPhase === 'following') {
+                if (policePeuLissesGroup && characterGroup) {
+                    const dx = characterGroup.position.x - policePeuLissesGroup.position.x;
+                    const dz = characterGroup.position.z - policePeuLissesGroup.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 1.25) {
+                        const followSpeed = 5.4;
+                        policePeuLissesGroup.position.x += (dx / dist) * followSpeed * dt;
+                        policePeuLissesGroup.position.z += (dz / dist) * followSpeed * dt;
+                    }
+                    policePeuLissesGroup.position.y =
+                        getGroundHeightAt(policePeuLissesGroup.position.x, policePeuLissesGroup.position.z) +
+                        Math.abs(Math.sin(now * 0.009)) * 0.06;
+                }
+
+                if (policeArrestTimer >= 2.2) {
+                    policeArrestPhase = 'in_car';
+                    policeArrestTimer = 0;
+
+                    if (activeVehicle) {
+                        exitCurrentVehicle();
+                    }
+
+                    if (characterGroup) {
+                        savedPositionBeforeArrest = characterGroup.position.clone();
+                    }
+
+                    if (policeCarGroup && characterGroup) {
+                        policeCarGroup.position.x = characterGroup.position.x + 1.8;
+                        policeCarGroup.position.z = characterGroup.position.z + 1.8;
+                        policeCarGroup.position.y = getGroundHeightAt(policeCarGroup.position.x, policeCarGroup.position.z);
+
+                        characterGroup.position.copy(policeCarGroup.position);
+                        characterGroup.position.y += 0.45;
+                        targetLookAt.set(characterGroup.position.x, characterGroup.position.y + 1.35, characterGroup.position.z);
+                        updateCameraPosition();
+                    }
+
+                    setFace('worried');
+                    setCinemaDialog(
+                        true,
+                        'Police des peu lisses',
+                        'Allez hop, dans la voiture de police ! Direction la prison à vie !',
+                        false
+                    );
+                }
+            } else if (policeArrestPhase === 'in_car') {
+                if (policeCarGroup && characterGroup) {
+                    const driveStep = 6.2 * dt;
+                    policeCarGroup.position.x += driveStep * 0.7;
+                    policeCarGroup.position.z += driveStep * 0.7;
+                    policeCarGroup.position.y = getGroundHeightAt(policeCarGroup.position.x, policeCarGroup.position.z);
+                    policeCarGroup.rotation.y = Math.PI / 4;
+
+                    characterGroup.position.copy(policeCarGroup.position);
+                    characterGroup.position.y += 0.45;
+                    targetLookAt.set(characterGroup.position.x, characterGroup.position.y + 1.35, characterGroup.position.z);
+                    updateCameraPosition();
+                }
+
+                if (policeArrestTimer >= 2.4) {
+                    policeArrestPhase = 'in_prison';
+                    policeArrestTimer = 0;
+                    isInsideCinema = false;
+
+                    const cellCenter = new THREE.Vector3(24, 0, 24);
+                    cellCenter.y = getGroundHeightAt(cellCenter.x, cellCenter.z);
+                    buildLifePrisonCell(cellCenter);
+
+                    if (characterGroup) {
+                        characterGroup.position.set(cellCenter.x, cellCenter.y + 0.12, cellCenter.z);
+                        targetLookAt.set(characterGroup.position.x, characterGroup.position.y + 1.35, characterGroup.position.z);
+                        updateCameraPosition();
+                    }
+
+                    setFace('sad');
+                    setCinemaDialog(
+                        true,
+                        'Prison à Vie',
+                        "Condamné à la prison à vie par la police des peu lisses ! Plus de cinéma pour un bon moment...",
+                        true
+                    );
+                }
+            } else if (policeArrestPhase === 'in_prison') {
+                if (characterGroup && prisonCellGroup) {
+                    const minX = prisonCellGroup.position.x - 2.6;
+                    const maxX = prisonCellGroup.position.x + 2.6;
+                    const minZ = prisonCellGroup.position.z - 2.6;
+                    const maxZ = prisonCellGroup.position.z + 2.6;
+                    characterGroup.position.x = Math.max(minX, Math.min(maxX, characterGroup.position.x));
+                    characterGroup.position.z = Math.max(minZ, Math.min(maxZ, characterGroup.position.z));
+                }
+            }
+        }
+
+        function spawnSwordEdgeSlashEffect() {
+            if (!scene || !characterGroup) return;
+
+            if (swordSlashBeam) {
+                scene.remove(swordSlashBeam);
+                swordSlashBeam.geometry.dispose();
+                swordSlashBeam.material.dispose();
+                swordSlashBeam = null;
+            }
+            if (swordSlashBeamTimer) {
+                clearTimeout(swordSlashBeamTimer);
+                swordSlashBeamTimer = null;
+            }
+
+            const slashGeo = new THREE.RingGeometry(0.55, 1.35, 24, 1, -Math.PI * 0.42, Math.PI * 0.84);
+            const slashMat = new THREE.MeshBasicMaterial({
+                color: 0xfef08a,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.95
+            });
+            swordSlashBeam = new THREE.Mesh(slashGeo, slashMat);
+
+            const targetPos = cinemaEmployeeGroup ? cinemaEmployeeGroup.position : new THREE.Vector3(2.35, 0.9, 1.65);
+            const worldTarget = targetPos.clone();
+            if (cinemaEmployeeGroup && cinemaEmployeeGroup.parent) {
+                cinemaEmployeeGroup.getWorldPosition(worldTarget);
+            }
+
+            swordSlashBeam.position.set(
+                (characterGroup.position.x + worldTarget.x) * 0.5,
+                characterGroup.position.y + 1.25,
+                (characterGroup.position.z + worldTarget.z) * 0.5
+            );
+            swordSlashBeam.lookAt(worldTarget.x, characterGroup.position.y + 1.25, worldTarget.z);
+            swordSlashBeam.rotateZ(0.45);
+            scene.add(swordSlashBeam);
+
+            swordSlashBeamTimer = setTimeout(() => {
+                if (swordSlashBeam && scene) {
+                    scene.remove(swordSlashBeam);
+                    swordSlashBeam.geometry.dispose();
+                    swordSlashBeam.material.dispose();
+                    swordSlashBeam = null;
+                }
+            }, 420);
+        }
+
+        function triggerSwordSlashVisual() {
+            setArms('sword');
+            if (swordSlashTimer) {
+                clearTimeout(swordSlashTimer);
+            }
+            if (characterSprite) {
+                characterSprite.material.rotation = -0.38;
+                characterSprite.scale.x = (2.85 * (360 / 470)) * 1.12;
+            }
+            spawnSwordEdgeSlashEffect();
+            swordSlashTimer = setTimeout(() => {
+                if (characterSprite) {
+                    characterSprite.material.rotation = 0;
+                    characterSprite.scale.x = 2.85 * (360 / 470);
+                }
+                if (renderer && scene && camera) {
+                    renderer.render(scene, camera);
+                }
+            }, 350);
+        }
+
+        function unlockCinemaInnerDoorObstacle() {
+            cinemaRoomUnlockedBySword = true;
+            for (let i = obstacles3D.length - 1; i >= 0; i--) {
+                const box = obstacles3D[i];
+                if (Math.hypot(box.cx - cinemaInnerDoorWorldPos.x, box.cz - cinemaInnerDoorWorldPos.z) < 1.2) {
+                    obstacles3D.splice(i, 1);
+                }
+            }
+        }
+
+        function forceCinemaDoorWithSword() {
+            if (!isInsideCinema) return;
+
+            triggerSwordSlashVisual();
+            unlockCinemaInnerDoorObstacle();
+            failedSequenceActive = false;
+
+            const showIdBtn = document.getElementById('show-id-btn');
+            if (showIdBtn) showIdBtn.classList.add('hidden');
+
+            setFace('determined');
+            setCinemaDialog(
+                true,
+                'Personnage au sweat jaune',
+                "Forcer la porte avec l'épée ! La porte de la salle s'ouvre.",
+                false
+            );
+        }
+
+        function trancAtCinemaWithSword() {
+            if (!isInsideCinema) return;
+
+            clearTrancEffects();
+            triggerSwordSlashVisual();
+            failedSequenceActive = false;
+
+            const showIdBtn = document.getElementById('show-id-btn');
+            if (showIdBtn) showIdBtn.classList.add('hidden');
+
+            const worldTarget = new THREE.Vector3(2.35, 0.9, 1.65);
+            if (cinemaEmployeeGroup) {
+                cinemaEmployeeGroup.getWorldPosition(worldTarget);
+            }
+
+            const bladeAxisDir = new THREE.Vector3(0.78, -0.45, 0.43).normalize();
+            spawnCutTraceOnTarget(worldTarget, bladeAxisDir);
+
+            const bleedDelayMs = 115;
+            const t1 = setTimeout(() => {
+                if (cinemaEmployeeGroup) {
+                    cinemaEmployeeGroup.rotation.z = -0.82;
+                    cinemaEmployeeGroup.rotation.x = 0.25;
+                    cinemaEmployeeGroup.position.y = -0.14;
+                }
+                spawnBladeAxisJetAndDrops(
+                    new THREE.Vector3(worldTarget.x, worldTarget.y + 0.92, worldTarget.z),
+                    bladeAxisDir
+                );
+
+                const tCall = setTimeout(() => {
+                    setCinemaDialog(
+                        true,
+                        'Employée du Cinéma (au téléphone)',
+                        'Allô ?! La police des peu lisses ?! Venez vite au cinéma, il y a eu un tranc !',
+                        false
+                    );
+                }, 650);
+                trancSequenceTimers.push(tCall);
+
+                const tArrive = setTimeout(() => {
+                    summonPolicePeuLissesAtCinema(worldTarget);
+                    const tNews = setTimeout(() => {
+                        summonTvNewsAnchorForTranc(worldTarget);
+                    }, 550);
+                    trancSequenceTimers.push(tNews);
+                }, 1550);
+                trancSequenceTimers.push(tArrive);
+            }, bleedDelayMs);
+            trancSequenceTimers.push(t1);
+
+            setFace('determined');
+            setCinemaDialog(
+                true,
+                'Employée du Cinéma',
+                'Tranc ! Tracé de coupe le long de la lame, jet axial après 115 ms et retombée au sol.',
+                false
+            );
+        }
+
+        function createRoadTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let i = 0; i < 2400; i++) {
+                const x = (i * 73) % 512;
+                const y = (i * 137) % 512;
+                ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(15,23,42,0.08)';
+                ctx.fillRect(x, y, 2, 2);
+            }
+
+            ctx.fillStyle = '#f8fafc';
+            for (let y = 24; y < 512; y += 96) {
+                ctx.fillRect(250, y, 12, 48);
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(1, 6);
+            return tex;
+        }
+
+        function createSidewalkTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            const step = 64;
+            for (let x = 0; x <= 256; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, 256);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= 256; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(256, y);
+                ctx.stroke();
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(4, 4);
+            return tex;
+        }
+
+        function buildRoadsAndSidewalksOnly() {
+            const worldGroup = new THREE.Group();
+
+            const roadTex = createRoadTexture();
+            const sidewalkTex = createSidewalkTexture();
+
+            const roadMat = new THREE.MeshStandardMaterial({
+                map: roadTex,
+                roughness: 0.88,
+                metalness: 0.05
+            });
+
+            const sidewalkMat = new THREE.MeshStandardMaterial({
+                map: sidewalkTex,
+                roughness: 0.8,
+                metalness: 0.05
+            });
+
+            const curbMat = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8,
+                roughness: 0.75,
+                metalness: 0.08
+            });
+
+            const roadWidth = 9;
+            const roadLength = 160;
+            const sidewalkHeight = 0.16;
+
+            const roadNS = new THREE.Mesh(new THREE.PlaneGeometry(roadWidth, roadLength), roadMat);
+            roadNS.rotation.x = -Math.PI / 2;
+            roadNS.position.set(0, 0.01, 0);
+            roadNS.receiveShadow = true;
+            worldGroup.add(roadNS);
+
+            const roadEW = new THREE.Mesh(new THREE.PlaneGeometry(roadLength, roadWidth), roadMat);
+            roadEW.rotation.x = -Math.PI / 2;
+            roadEW.position.set(0, 0.012, 0);
+            roadEW.receiveShadow = true;
+            worldGroup.add(roadEW);
+
+            const intersectionMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                roughness: 0.9,
+                metalness: 0.05
+            });
+            const intersection = new THREE.Mesh(new THREE.PlaneGeometry(roadWidth, roadWidth), intersectionMat);
+            intersection.rotation.x = -Math.PI / 2;
+            intersection.position.set(0, 0.015, 0);
+            intersection.receiveShadow = true;
+            worldGroup.add(intersection);
+
+            const stripeMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+            const offsetEdge = roadWidth / 2 + 1.1;
+            for (let i = -3; i <= 3; i++) {
+                const s1 = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 1.8), stripeMat);
+                s1.rotation.x = -Math.PI / 2;
+                s1.position.set(i * 1.15, 0.02, offsetEdge);
+                worldGroup.add(s1);
+
+                const s2 = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 1.8), stripeMat);
+                s2.rotation.x = -Math.PI / 2;
+                s2.position.set(i * 1.15, 0.02, -offsetEdge);
+                worldGroup.add(s2);
+
+                const s3 = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.55), stripeMat);
+                s3.rotation.x = -Math.PI / 2;
+                s3.position.set(offsetEdge, 0.02, i * 1.15);
+                worldGroup.add(s3);
+
+                const s4 = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.55), stripeMat);
+                s4.rotation.x = -Math.PI / 2;
+                s4.position.set(-offsetEdge, 0.02, i * 1.15);
+                worldGroup.add(s4);
+            }
+
+            const blockSize = 32;
+            const halfGap = roadWidth / 2;
+            const blockCenterOffset = halfGap + blockSize / 2;
+            const quadrants = [
+                [-blockCenterOffset, -blockCenterOffset],
+                [blockCenterOffset, -blockCenterOffset],
+                [-blockCenterOffset, blockCenterOffset],
+                [blockCenterOffset, blockCenterOffset]
+            ];
+
+            quadrants.forEach(([cx, cz]) => {
+                const sidewalk = new THREE.Mesh(
+                    new THREE.BoxGeometry(blockSize, sidewalkHeight, blockSize),
+                    sidewalkMat
+                );
+                sidewalk.position.set(cx, sidewalkHeight / 2, cz);
+                sidewalk.receiveShadow = true;
+                sidewalk.castShadow = true;
+                worldGroup.add(sidewalk);
+
+                const curbTrim = new THREE.Mesh(
+                    new THREE.BoxGeometry(blockSize + 0.06, 0.04, blockSize + 0.06),
+                    curbMat
+                );
+                curbTrim.position.set(cx, sidewalkHeight - 0.01, cz);
+                worldGroup.add(curbTrim);
+            });
+
+            scene.add(worldGroup);
+        }
+
+        function createCinemaFilmCanvasTexture() {
+            cinemaScreenCanvas = document.createElement('canvas');
+            cinemaScreenCanvas.width = 640;
+            cinemaScreenCanvas.height = 360;
+            cinemaScreenCtx = cinemaScreenCanvas.getContext('2d');
+            cinemaScreenTexture = new THREE.CanvasTexture(cinemaScreenCanvas);
+            cinemaScreenTexture.needsUpdate = true;
+            return cinemaScreenTexture;
+        }
+
+        function updateCinemaFilmAnimation(now) {
+            if (!cinemaScreenCtx || !cinemaScreenTexture) return;
+            const ctx = cinemaScreenCtx;
+            const w = cinemaScreenCanvas.width;
+            const h = cinemaScreenCanvas.height;
+            const t = (now || 0) * 0.001;
+
+            const unlocked = Boolean(cinemaRoomUnlockedBySword || isInsideCinema);
+            if (!unlocked) {
+                ctx.fillStyle = '#090d16';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '800 22px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('PORTE DE LA SALLE VERROUILLÉE', w / 2, h / 2 - 10);
+                ctx.font = '600 15px Inter, sans-serif';
+                ctx.fillText("Forcez la porte avec l'épée pour lancer l'animation 3D", w / 2, h / 2 + 22);
+                cinemaScreenTexture.needsUpdate = true;
+                return;
+            }
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+            skyGrad.addColorStop(0, '#1e1b4b');
+            skyGrad.addColorStop(0.55, '#4338ca');
+            skyGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, h * 0.72, w, h * 0.28);
+
+            const p1x = ((t * 150) % (w + 140)) - 70;
+            const p1y = h * 0.62 + Math.abs(Math.sin(t * 9)) * -18;
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(p1x, p1y, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(p1x - 14, p1y + 18, 28, 32);
+
+            const p2x = ((t * 150 - 95) % (w + 140)) - 70;
+            const p2y = h * 0.62 + Math.abs(Math.cos(t * 9)) * -18;
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(p2x, p2y, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(p2x - 14, p2y + 18, 28, 32);
+
+            ctx.fillStyle = 'rgba(254, 240, 138, 0.16)';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.5, 0);
+            ctx.lineTo(w * 0.5 + Math.sin(t * 2) * 160 - 120, h);
+            ctx.lineTo(w * 0.5 + Math.sin(t * 2) * 160 + 120, h);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#fef08a';
+            ctx.font = '900 20px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('ANIMATION 3D DU FILM • EN COURS', 22, 34);
+
+            cinemaScreenTexture.needsUpdate = true;
+        }
+
+        function buildCinemaBuilding(baseY) {
+            const cinema = new THREE.Group();
+
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x312e81, roughness: 0.65, metalness: 0.1 });
+            const lobbyWallMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.72, metalness: 0.08 });
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.45, metalness: 0.25 });
+            const awningMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.55, metalness: 0.1 });
+
+            const cinemaW = 13.6;
+            const cinemaD = 11.2;
+            const halfW = cinemaW / 2;
+            const halfD = cinemaD / 2;
+
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(cinemaW, 4.8, 0.25), wallMat);
+            backWall.position.set(0, 2.4, -halfD + 0.12);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
+            cinema.add(backWall);
+
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 4.8, cinemaD), wallMat);
+            leftWall.position.set(-halfW + 0.12, 2.4, 0);
+            leftWall.castShadow = true;
+            leftWall.receiveShadow = true;
+            cinema.add(leftWall);
+
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 4.8, cinemaD), wallMat);
+            rightWall.position.set(halfW - 0.12, 2.4, 0);
+            rightWall.castShadow = true;
+            rightWall.receiveShadow = true;
+            cinema.add(rightWall);
+
+            const sideWallSpan = (cinemaW - 2.2) / 2;
+            const frontLeftWall = new THREE.Mesh(new THREE.BoxGeometry(sideWallSpan, 4.8, 0.25), wallMat);
+            frontLeftWall.position.set(-(1.1 + sideWallSpan / 2), 2.4, halfD - 0.12);
+            frontLeftWall.castShadow = true;
+            frontLeftWall.receiveShadow = true;
+            cinema.add(frontLeftWall);
+
+            const frontRightWall = new THREE.Mesh(new THREE.BoxGeometry(sideWallSpan, 4.8, 0.25), wallMat);
+            frontRightWall.position.set(1.1 + sideWallSpan / 2, 2.4, halfD - 0.12);
+            frontRightWall.castShadow = true;
+            frontRightWall.receiveShadow = true;
+            cinema.add(frontRightWall);
+
+            const frontTopHeader = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.4, 0.25), wallMat);
+            frontTopHeader.position.set(0, 3.6, halfD - 0.12);
+            frontTopHeader.castShadow = true;
+            cinema.add(frontTopHeader);
+
+            const marquee = new THREE.Mesh(new THREE.BoxGeometry(10.8, 0.44, 1.55), awningMat);
+            marquee.position.set(0, 2.95, halfD + 0.48);
+            marquee.castShadow = true;
+            cinema.add(marquee);
+
+            const cinemaSignTex = createSignTexture('CINÉMA', '#1e1b4b', '#fef08a', 'GRAND HALL & SALLE');
+            const cinemaSign = new THREE.Mesh(
+                new THREE.BoxGeometry(7.6, 1.0, 0.22),
+                new THREE.MeshStandardMaterial({ map: cinemaSignTex, roughness: 0.45 })
+            );
+            cinemaSign.position.set(0, 4.0, halfD + 0.05);
+            cinema.add(cinemaSign);
+
+            const sideTrim = new THREE.Mesh(new THREE.BoxGeometry(0.28, 4.9, 0.28), trimMat);
+            sideTrim.position.set(-halfW + 0.05, 2.45, halfD);
+            cinema.add(sideTrim);
+
+            const rightTrim = new THREE.Mesh(new THREE.BoxGeometry(0.28, 4.9, 0.28), trimMat);
+            rightTrim.position.set(halfW - 0.05, 2.45, halfD);
+            cinema.add(rightTrim);
+
+            cinemaDoorPivot = new THREE.Group();
+            cinemaDoorPivot.position.set(-1.05, 0, halfD - 0.08);
+
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, roughness: 0.4, metalness: 0.2 });
+            const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(2.05, 2.3, 0.12), doorMat);
+            doorLeaf.position.set(1.025, 1.15, 0);
+            doorLeaf.castShadow = true;
+            cinemaDoorPivot.add(doorLeaf);
+            cinema.add(cinemaDoorPivot);
+
+            const roomFloor = new THREE.Mesh(
+                new THREE.BoxGeometry(cinemaW - 0.45, 0.04, cinemaD - 0.45),
+                new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 })
+            );
+            roomFloor.position.set(0, 0.02, 0);
+            roomFloor.receiveShadow = true;
+            cinema.add(roomFloor);
+
+            const partitionZ = 0.6;
+            const partitionSideW = (cinemaW - 0.5 - 2.4) / 2;
+            const partLeft = new THREE.Mesh(new THREE.BoxGeometry(partitionSideW, 4.5, 0.22), lobbyWallMat);
+            partLeft.position.set(-(1.2 + partitionSideW / 2), 2.25, partitionZ);
+            partLeft.castShadow = true;
+            partLeft.receiveShadow = true;
+            cinema.add(partLeft);
+
+            const partRight = new THREE.Mesh(new THREE.BoxGeometry(partitionSideW, 4.5, 0.22), lobbyWallMat);
+            partRight.position.set(1.2 + partitionSideW / 2, 2.25, partitionZ);
+            partRight.castShadow = true;
+            partRight.receiveShadow = true;
+            cinema.add(partRight);
+
+            const partTop = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.0, 0.22), lobbyWallMat);
+            partTop.position.set(0, 3.5, partitionZ);
+            partTop.castShadow = true;
+            cinema.add(partTop);
+
+            cinemaInnerDoorPivot = new THREE.Group();
+            cinemaInnerDoorPivot.position.set(-1.15, 0, partitionZ);
+
+            const innerDoorMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.4, metalness: 0.2 });
+            const innerDoorLeaf = new THREE.Mesh(new THREE.BoxGeometry(2.25, 2.45, 0.12), innerDoorMat);
+            innerDoorLeaf.position.set(1.125, 1.225, 0);
+            innerDoorLeaf.castShadow = true;
+            cinemaInnerDoorPivot.add(innerDoorLeaf);
+            cinema.add(cinemaInnerDoorPivot);
+
+            const deskMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.6, metalness: 0.1 });
+            const counterDesk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.95, 0.75), deskMat);
+            counterDesk.position.set(2.35, 0.475, 2.35);
+            counterDesk.castShadow = true;
+            cinema.add(counterDesk);
+
+            cinemaEmployeeGroup = new THREE.Group();
+            cinemaEmployeeGroup.position.set(2.35, 0.04, 1.65);
+            cinemaEmployeeGroup.rotation.y = Math.PI;
+
+            const empCanvas = document.createElement('canvas');
+            empCanvas.width = 240;
+            empCanvas.height = 280;
+            const ectx = empCanvas.getContext('2d');
+            ectx.clearRect(0, 0, 240, 280);
+
+            ectx.fillStyle = '#0F766E';
+            ectx.strokeStyle = '#0A0A0A';
+            ectx.lineWidth = 6;
+            ectx.beginPath();
+            ectx.moveTo(44, 272);
+            ectx.quadraticCurveTo(52, 185, 120, 182);
+            ectx.quadraticCurveTo(188, 185, 196, 272);
+            ectx.closePath();
+            ectx.fill();
+            ectx.stroke();
+
+            ectx.fillStyle = '#F8FAFC';
+            ectx.beginPath();
+            ectx.moveTo(96, 184);
+            ectx.lineTo(120, 236);
+            ectx.lineTo(144, 184);
+            ectx.closePath();
+            ectx.fill();
+            ectx.stroke();
+
+            ectx.fillStyle = '#FDE68A';
+            ectx.lineWidth = 3.5;
+            ectx.fillRect(56, 212, 48, 22);
+            ectx.strokeRect(56, 212, 48, 22);
+
+            ectx.fillStyle = '#FAD7B8';
+            ectx.strokeStyle = '#0A0A0A';
+            ectx.lineWidth = 6;
+            ectx.beginPath();
+            ectx.arc(120, 114, 54, 0, Math.PI * 2);
+            ectx.fill();
+            ectx.stroke();
+
+            ectx.fillStyle = '#451A03';
+            ectx.beginPath();
+            ectx.arc(120, 108, 57, Math.PI * 0.92, Math.PI * 2.08);
+            ectx.quadraticCurveTo(145, 76, 120, 74);
+            ectx.quadraticCurveTo(92, 76, 63, 108);
+            ectx.closePath();
+            ectx.fill();
+            ectx.stroke();
+
+            ectx.fillStyle = '#0F172A';
+            ectx.beginPath();
+            ectx.arc(99, 116, 6.5, 0, Math.PI * 2);
+            ectx.arc(141, 116, 6.5, 0, Math.PI * 2);
+            ectx.fill();
+
+            ectx.strokeStyle = '#0A0A0A';
+            ectx.lineWidth = 5.5;
+            ectx.lineCap = 'round';
+            ectx.beginPath();
+            ectx.moveTo(86, 100);
+            ectx.lineTo(108, 104);
+            ectx.moveTo(154, 100);
+            ectx.lineTo(132, 104);
+            ectx.stroke();
+
+            ectx.beginPath();
+            ectx.arc(120, 134, 16, 0.15 * Math.PI, 0.85 * Math.PI);
+            ectx.stroke();
+
+            cinemaEmployeeTexture = new THREE.CanvasTexture(empCanvas);
+            cinemaEmployeeTexture.needsUpdate = true;
+            cinemaEmployeeSprite = new THREE.Sprite(
+                new THREE.SpriteMaterial({ map: cinemaEmployeeTexture, transparent: true, depthWrite: true })
+            );
+            cinemaEmployeeSprite.scale.set(1.45, 1.72, 1);
+            cinemaEmployeeSprite.position.set(0, 0.9, 0);
+            cinemaEmployeeGroup.add(cinemaEmployeeSprite);
+            cinema.add(cinemaEmployeeGroup);
+
+            const filmTex = createCinemaFilmCanvasTexture();
+            cinemaScreenMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(8.8, 3.0),
+                new THREE.MeshBasicMaterial({ map: filmTex })
+            );
+            cinemaScreenMesh.position.set(0, 2.2, -halfD + 0.36);
+            cinema.add(cinemaScreenMesh);
+
+            cinemaFilmSpotlight = new THREE.SpotLight(0xfef08a, 1.2, 14, Math.PI / 5, 0.5, 1);
+            cinemaFilmSpotlight.position.set(0, 3.2, -1.5);
+            cinemaFilmSpotlight.target = cinemaScreenMesh;
+            cinema.add(cinemaFilmSpotlight);
+            cinema.add(cinemaFilmSpotlight.target);
+
+            const seatMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.75, metalness: 0.05 });
+            [-3.8, -1.9, 0, 1.9, 3.8].forEach((sx) => {
+                [-3.2, -1.6].forEach((sz) => {
+                    const seatBase = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.45, 0.72), seatMat);
+                    seatBase.position.set(sx, 0.225, sz);
+                    seatBase.castShadow = true;
+                    cinema.add(seatBase);
+
+                    const seatBack = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.7, 0.18), seatMat);
+                    seatBack.position.set(sx, 0.68, sz - 0.27);
+                    seatBack.castShadow = true;
+                    cinema.add(seatBack);
+                });
+            });
+
+            const posterTex = createUpcomingMoviePosterTexture(() => {
+                if (renderer && scene && camera) {
+                    renderer.render(scene, camera);
+                }
+            });
+            const posterBoard = new THREE.Mesh(
+                new THREE.BoxGeometry(2.2, 2.75, 0.16),
+                new THREE.MeshStandardMaterial({ map: posterTex, roughness: 0.45 })
+            );
+            posterBoard.position.set(4.8, 1.375, halfD + 0.75);
+            posterBoard.rotation.y = -0.18;
+            posterBoard.castShadow = true;
+            cinema.add(posterBoard);
+
+            cinema.position.set(16.5, baseY, -16.5);
+            cinema.rotation.y = -Math.PI / 4;
+            scene.add(cinema);
+
+            const rotY = cinema.rotation.y;
+            const cx = cinema.position.x;
+            const cz = cinema.position.z;
+
+            function toWorld(lx, lz) {
+                const v = new THREE.Vector3(lx, 0, lz).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
+                return { x: cx + v.x, z: cz + v.z };
+            }
+
+            cinemaDoorWorldPos.set(toWorld(0, halfD - 0.08).x, baseY, toWorld(0, halfD - 0.08).z);
+            cinemaInnerDoorWorldPos.set(toWorld(0, partitionZ).x, baseY, toWorld(0, partitionZ).z);
+            cinemaInteriorSpawnPos.set(toWorld(0, halfD - 1.55).x, baseY, toWorld(0, halfD - 1.55).z);
+            cinemaExteriorExitPos.set(toWorld(0, halfD + 1.55).x, baseY, toWorld(0, halfD + 1.55).z);
+
+            const backW = toWorld(0, -halfD + 0.12);
+            registerBoxObstacle(backW.x, backW.z, cinemaW, 0.4, rotY, 0.08);
+
+            const leftW = toWorld(-halfW + 0.12, 0);
+            registerBoxObstacle(leftW.x, leftW.z, 0.4, cinemaD, rotY, 0.08);
+
+            const rightW = toWorld(halfW - 0.12, 0);
+            registerBoxObstacle(rightW.x, rightW.z, 0.4, cinemaD, rotY, 0.08);
+
+            const fLeftW = toWorld(-(1.1 + sideWallSpan / 2), halfD - 0.12);
+            registerBoxObstacle(fLeftW.x, fLeftW.z, sideWallSpan, 0.35, rotY, 0.08);
+
+            const fRightW = toWorld(1.1 + sideWallSpan / 2, halfD - 0.12);
+            registerBoxObstacle(fRightW.x, fRightW.z, sideWallSpan, 0.35, rotY, 0.08);
+
+            const pLeftW = toWorld(-(1.2 + partitionSideW / 2), partitionZ);
+            registerBoxObstacle(pLeftW.x, pLeftW.z, partitionSideW, 0.32, rotY, 0.06);
+
+            const pRightW = toWorld(1.2 + partitionSideW / 2, partitionZ);
+            registerBoxObstacle(pRightW.x, pRightW.z, partitionSideW, 0.32, rotY, 0.06);
+
+            const deskW = toWorld(2.35, 2.35);
+            registerBoxObstacle(deskW.x, deskW.z, 2.4, 0.85, rotY, 0.08);
+
+            const innerDoorW = toWorld(0, partitionZ);
+            registerBoxObstacle(innerDoorW.x, innerDoorW.z, 2.3, 0.3, rotY, 0.08);
+
+            const posterW = toWorld(4.8, halfD + 0.75);
+            registerBoxObstacle(posterW.x, posterW.z, 2.35, 1.2, rotY - 0.18, 0.1);
+        }
+
+        function buildSchoolBuilding(baseY) {
+            const school = new THREE.Group();
+
+            const facadeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.72, metalness: 0.05 });
+            const bandMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.65, metalness: 0.1 });
+            const porchMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7, metalness: 0.05 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.65, metalness: 0.15 });
+            const windowMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.25, metalness: 0.25 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6, metalness: 0.1 });
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6, metalness: 0.1 });
+
+            const mainWing = new THREE.Mesh(new THREE.BoxGeometry(10.8, 4.4, 6.4), facadeMat);
+            mainWing.position.set(0, 2.2, 0);
+            mainWing.castShadow = true;
+            mainWing.receiveShadow = true;
+            school.add(mainWing);
+
+            const midBand = new THREE.Mesh(new THREE.BoxGeometry(11.0, 0.22, 6.52), bandMat);
+            midBand.position.set(0, 2.35, 0);
+            school.add(midBand);
+
+            const topCornice = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.26, 6.64), bandMat);
+            topCornice.position.set(0, 4.42, 0);
+            school.add(topCornice);
+
+            const centerPorch = new THREE.Mesh(new THREE.BoxGeometry(3.6, 4.8, 1.25), porchMat);
+            centerPorch.position.set(0, 2.4, 3.55);
+            centerPorch.castShadow = true;
+            centerPorch.receiveShadow = true;
+            school.add(centerPorch);
+
+            [-1.55, 1.55].forEach((px) => {
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.32, 2.55, 0.36), pillarMat);
+                pillar.position.set(px, 1.275, 4.18);
+                pillar.castShadow = true;
+                school.add(pillar);
+            });
+
+            const entryLintel = new THREE.Mesh(new THREE.BoxGeometry(3.85, 0.28, 1.42), frameMat);
+            entryLintel.position.set(0, 2.65, 3.62);
+            entryLintel.castShadow = true;
+            school.add(entryLintel);
+
+            const roofShape = new THREE.Shape();
+            roofShape.moveTo(-5.6, 0);
+            roofShape.lineTo(5.6, 0);
+            roofShape.lineTo(0, 1.55);
+            roofShape.closePath();
+
+            const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
+                depth: 6.7,
+                bevelEnabled: false
+            });
+            const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+            roofMesh.position.set(0, 4.45, -3.35);
+            roofMesh.castShadow = true;
+            school.add(roofMesh);
+
+            const signTex = createSignTexture('COLLÈGE JEAN ROSTAND', '#1e3a8a', '#ffffff', 'ENTRÉE PRINCIPALE');
+            const signMat = new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.45 });
+            const signBoard = new THREE.Mesh(new THREE.BoxGeometry(6.8, 1.15, 0.28), signMat);
+            signBoard.position.set(0, 3.95, 4.22);
+            signBoard.castShadow = true;
+            school.add(signBoard);
+
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.45, metalness: 0.15 });
+            const door = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.15, 0.18), doorMat);
+            door.position.set(0, 1.075, 4.18);
+            school.add(door);
+
+            const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.25, 0.2), windowMat);
+            doorGlass.position.set(0, 1.35, 4.19);
+            school.add(doorGlass);
+
+            const winXPositions = [-4.2, -2.5, 2.5, 4.2];
+            const winYPositions = [1.4, 3.15];
+            winYPositions.forEach((wy) => {
+                winXPositions.forEach((wx) => {
+                    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.98, 0.14), frameMat);
+                    winFrame.position.set(wx, wy, 3.22);
+                    school.add(winFrame);
+
+                    const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.74, 0.16), windowMat);
+                    winGlass.position.set(wx, wy, 3.23);
+                    school.add(winGlass);
+                });
+            });
+
+            const clockRim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.16, 20), frameMat);
+            clockRim.rotation.x = Math.PI / 2;
+            clockRim.position.set(0, 3.1, 4.2);
+            school.add(clockRim);
+
+            const clockFace = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.34, 0.34, 0.18, 20),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            clockFace.rotation.x = Math.PI / 2;
+            clockFace.position.set(0, 3.1, 4.21);
+            school.add(clockFace);
+
+            school.position.set(-14.5, baseY, -14.5);
+            school.rotation.y = Math.PI / 4;
+            scene.add(school);
+
+            registerBoxObstacle(-14.5, -14.5, 11.2, 8.4, Math.PI / 4, 0.15);
+        }
+
+        function buildSchoolFencing(baseY) {
+            const fenceGroup = new THREE.Group();
+
+            const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.4 });
+            const wireMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.55, metalness: 0.35 });
+            const gateMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.45, metalness: 0.35 });
+
+            const postHeight = 1.65;
+            const postRadius = 0.055;
+
+            function addFenceSegment(x1, z1, x2, z2) {
+                const dx = x2 - x1;
+                const dz = z2 - z1;
+                const length = Math.hypot(dx, dz);
+                if (length < 0.1) return;
+
+                const segGroup = new THREE.Group();
+                segGroup.position.set((x1 + x2) / 2, 0, (z1 + z2) / 2);
+                const angleY = -Math.atan2(dz, dx);
+                segGroup.rotation.y = angleY;
+
+                registerBoxObstacle((x1 + x2) / 2, (z1 + z2) / 2, length, 0.18, angleY, 0.05);
+
+                [0.25, 0.9, 1.55].forEach((hy) => {
+                    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, length, 8), wireMat);
+                    rail.rotation.z = Math.PI / 2;
+                    rail.position.set(0, hy, 0);
+                    rail.castShadow = true;
+                    segGroup.add(rail);
+                });
+
+                const spacing = 0.35;
+                const count = Math.max(1, Math.floor(length / spacing));
+                const barGeo = new THREE.CylinderGeometry(0.014, 0.014, postHeight - 0.1, 6);
+                for (let i = 0; i <= count; i++) {
+                    const bx = -length / 2 + (i / count) * length;
+                    const bar = new THREE.Mesh(barGeo, wireMat);
+                    bar.position.set(bx, (postHeight - 0.1) / 2 + 0.05, 0);
+                    bar.castShadow = true;
+                    segGroup.add(bar);
+                }
+
+                [-length / 2, length / 2].forEach((px) => {
+                    const post = new THREE.Mesh(new THREE.CylinderGeometry(postRadius, postRadius, postHeight, 10), postMat);
+                    post.position.set(px, postHeight / 2, 0);
+                    post.castShadow = true;
+                    segGroup.add(post);
+                });
+
+                fenceGroup.add(segGroup);
+            }
+
+            const minX = -22.5;
+            const maxX = -6.5;
+            const minZ = -22.5;
+            const maxZ = -6.5;
+
+            addFenceSegment(minX, minZ, maxX, minZ);
+            addFenceSegment(minX, minZ, minX, maxZ);
+            addFenceSegment(maxX, minZ, maxX, maxZ);
+            addFenceSegment(minX, maxZ, -16.6, maxZ);
+            addFenceSegment(-12.4, maxZ, maxX, maxZ);
+
+            [-16.6, -12.4].forEach((gx, idx) => {
+                const gatePost = new THREE.Mesh(new THREE.BoxGeometry(0.24, postHeight + 0.25, 0.24), gateMat);
+                gatePost.position.set(gx, (postHeight + 0.25) / 2, maxZ);
+                gatePost.castShadow = true;
+                fenceGroup.add(gatePost);
+
+                const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.85, postHeight - 0.15, 0.08), gateMat);
+                leaf.position.set(gx + (idx === 0 ? -0.9 : 0.9), (postHeight - 0.15) / 2, maxZ + (idx === 0 ? 0.6 : -0.6));
+                leaf.rotation.y = idx === 0 ? Math.PI / 3 : -Math.PI / 3;
+                leaf.castShadow = true;
+                fenceGroup.add(leaf);
+            });
+
+            fenceGroup.position.set(0, baseY, 0);
+            scene.add(fenceGroup);
+        }
+
+        function buildParkingZone(baseY) {
+            const parkingGroup = new THREE.Group();
+
+            const bayMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.85, metalness: 0.05 });
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+            const rackMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5, metalness: 0.45 });
+            const bikeFrameMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.45, metalness: 0.2 });
+            const scooterBodyMat = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.35, metalness: 0.25 });
+            const kickScooterMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.4, metalness: 0.3 });
+            const eScooterMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.32, metalness: 0.45 });
+            const ledMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.15 });
+
+            const zonePad = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.02, 3.8), bayMat);
+            zonePad.position.set(0, 0.01, 0);
+            zonePad.receiveShadow = true;
+            parkingGroup.add(zonePad);
+
+            const borderFront = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 0.12), lineMat);
+            borderFront.rotation.x = -Math.PI / 2;
+            borderFront.position.set(0, 0.022, 1.82);
+            parkingGroup.add(borderFront);
+
+            const borderBack = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 0.12), lineMat);
+            borderBack.rotation.x = -Math.PI / 2;
+            borderBack.position.set(0, 0.022, -1.82);
+            parkingGroup.add(borderBack);
+
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 10), rackMat);
+            pole.position.set(-3.45, 0.9, -1.55);
+            pole.castShadow = true;
+            parkingGroup.add(pole);
+
+            const signTex = createSignTexture('GARE 2-ROUES', '#0369a1', '#ffffff', 'TROTTINETTE • SCOOTER • VÉLO');
+            const signPanel = new THREE.Mesh(
+                new THREE.BoxGeometry(2.1, 0.62, 0.08),
+                new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.45 })
+            );
+            signPanel.position.set(-3.45, 1.65, -1.52);
+            signPanel.castShadow = true;
+            parkingGroup.add(signPanel);
+
+            [-2.2, -1.1, 0.0, 1.1, 2.2].forEach((rx) => {
+                const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.032, 8, 16, Math.PI), rackMat);
+                hoop.position.set(rx, 0.36, -0.4);
+                hoop.castShadow = true;
+                parkingGroup.add(hoop);
+            });
+
+            const kickScooter = new THREE.Group();
+            const ksDeck = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.58), kickScooterMat);
+            ksDeck.position.set(0, 0.09, 0);
+            ksDeck.castShadow = true;
+            kickScooter.add(ksDeck);
+
+            const ksStem = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.85, 8), kickScooterMat);
+            ksStem.position.set(0, 0.5, 0.24);
+            ksStem.rotation.x = -0.12;
+            ksStem.castShadow = true;
+            kickScooter.add(ksStem);
+
+            const ksBar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.42, 8), rackMat);
+            ksBar.rotation.z = Math.PI / 2;
+            ksBar.position.set(0, 0.92, 0.29);
+            kickScooter.add(ksBar);
+
+            [-0.22, 0.24].forEach((wz) => {
+                const w = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.04, 12), wheelMat);
+                w.rotation.z = Math.PI / 2;
+                w.position.set(0, 0.08, wz);
+                kickScooter.add(w);
+            });
+            kickScooter.position.set(-2.2, 0.02, 0.35);
+            parkingGroup.add(kickScooter);
+
+            const bike = new THREE.Group();
+            [-0.48, 0.48].forEach((wz) => {
+                const tire = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.04, 10, 20), wheelMat);
+                tire.rotation.y = Math.PI / 2;
+                tire.position.set(0, 0.28, wz);
+                tire.castShadow = true;
+                bike.add(tire);
+            });
+
+            const frameBar = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.88, 8), bikeFrameMat);
+            frameBar.rotation.x = Math.PI / 2 - 0.25;
+            frameBar.position.set(0, 0.54, 0);
+            frameBar.castShadow = true;
+            bike.add(frameBar);
+
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.24), wheelMat);
+            seat.position.set(0, 0.82, -0.18);
+            bike.add(seat);
+
+            const handlebar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.52, 8), rackMat);
+            handlebar.rotation.z = Math.PI / 2;
+            handlebar.position.set(0, 0.86, 0.36);
+            bike.add(handlebar);
+
+            bike.position.set(-0.25, 0.02, 0.35);
+            parkingGroup.add(bike);
+
+            const scooter = new THREE.Group();
+            [-0.56, 0.56].forEach((wz) => {
+                const tire = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.065, 10, 20), wheelMat);
+                tire.rotation.y = Math.PI / 2;
+                tire.position.set(0, 0.24, wz);
+                tire.castShadow = true;
+                scooter.add(tire);
+            });
+
+            const floorBoard = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.95), wheelMat);
+            floorBoard.position.set(0, 0.26, 0.02);
+            floorBoard.castShadow = true;
+            scooter.add(floorBoard);
+
+            const bodyShell = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.42, 0.72), scooterBodyMat);
+            bodyShell.position.set(0, 0.5, -0.22);
+            bodyShell.castShadow = true;
+            scooter.add(bodyShell);
+
+            const frontShield = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.62, 0.22), scooterBodyMat);
+            frontShield.position.set(0, 0.6, 0.42);
+            frontShield.rotation.x = -0.18;
+            frontShield.castShadow = true;
+            scooter.add(frontShield);
+
+            const scHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.62, 8), rackMat);
+            scHandle.rotation.z = Math.PI / 2;
+            scHandle.position.set(0, 0.96, 0.36);
+            scooter.add(scHandle);
+
+            scooter.position.set(1.85, 0.02, 0.35);
+            parkingGroup.add(scooter);
+
+            const electricScooter = new THREE.Group();
+            const esDeck = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.055, 0.76), eScooterMat);
+            esDeck.position.set(0, 0.11, 0);
+            esDeck.castShadow = true;
+            electricScooter.add(esDeck);
+
+            const esLedStrip = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.018, 0.66), ledMat);
+            esLedStrip.position.set(0, 0.142, 0);
+            electricScooter.add(esLedStrip);
+
+            const esMotorHub = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.06, 14), rackMat);
+            esMotorHub.rotation.z = Math.PI / 2;
+            esMotorHub.position.set(0, 0.09, -0.31);
+            electricScooter.add(esMotorHub);
+
+            const esStem = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.028, 0.96, 10), eScooterMat);
+            esStem.position.set(0, 0.56, 0.31);
+            esStem.rotation.x = -0.14;
+            esStem.castShadow = true;
+            electricScooter.add(esStem);
+
+            const esDisplay = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.04), ledMat);
+            esDisplay.position.set(0, 1.03, 0.38);
+            electricScooter.add(esDisplay);
+
+            const esBar = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.48, 10), rackMat);
+            esBar.rotation.z = Math.PI / 2;
+            esBar.position.set(0, 1.01, 0.37);
+            electricScooter.add(esBar);
+
+            const esHeadlight = new THREE.Mesh(new THREE.SphereGeometry(0.032, 10, 10), ledMat);
+            esHeadlight.position.set(0, 0.96, 0.41);
+            electricScooter.add(esHeadlight);
+
+            [-0.31, 0.32].forEach((wz) => {
+                const w = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.048, 14), wheelMat);
+                w.rotation.z = Math.PI / 2;
+                w.position.set(0, 0.09, wz);
+                w.castShadow = true;
+                electricScooter.add(w);
+            });
+
+            electricScooter.position.set(3.15, 0.02, 0.35);
+            parkingGroup.add(electricScooter);
+
+            parkingGroup.position.set(11.5, baseY, 11.5);
+            parkingGroup.rotation.y = -Math.PI / 6;
+            scene.add(parkingGroup);
+
+            registerBoxObstacle(11.5, 11.5, 7.6, 3.8, -Math.PI / 6, 0.1);
+
+            registerUsableVehicle('kick_scooter', 'Trottinette', kickScooter, false, 0.22);
+            registerUsableVehicle('bike', 'Vélo', bike, false, 0.34);
+            registerUsableVehicle('scooter', 'Scooter', scooter, false, 0.36);
+            registerUsableVehicle('electric_scooter', 'Trottinette électrique', electricScooter, false, 0.24);
+        }
+
+        function buildDrivableCars(baseY) {
+            const carConfigs = [
+                {
+                    id: 'car_red',
+                    label: 'Voiture rouge',
+                    color: 0xdc2626,
+                    x: 2.2,
+                    y: ROAD_TOP_Y,
+                    z: 14.5,
+                    rotY: Math.PI
+                },
+                {
+                    id: 'car_blue',
+                    label: 'Voiture bleue',
+                    color: 0x2563eb,
+                    x: -2.2,
+                    y: ROAD_TOP_Y,
+                    z: -12.0,
+                    rotY: 0
+                }
+            ];
+
+            const cabinMat = new THREE.MeshStandardMaterial({ color: 0xbae6fd, roughness: 0.2, metalness: 0.35 });
+            const tireMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8, metalness: 0.1 });
+            const bumperMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.3 });
+
+            carConfigs.forEach((cfg) => {
+                const carGroup = new THREE.Group();
+                const bodyMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.35, metalness: 0.25 });
+
+                const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.56, 3.6), bodyMat);
+                chassis.position.set(0, 0.52, 0);
+                chassis.castShadow = true;
+                chassis.receiveShadow = true;
+                carGroup.add(chassis);
+
+                const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.52, 1.85), cabinMat);
+                cabin.position.set(0, 1.02, -0.15);
+                cabin.castShadow = true;
+                carGroup.add(cabin);
+
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(1.44, 0.08, 1.75), bodyMat);
+                roof.position.set(0, 1.29, -0.18);
+                roof.castShadow = true;
+                carGroup.add(roof);
+
+                [-1.82, 1.82].forEach((bz) => {
+                    const bumper = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.22, 0.16), bumperMat);
+                    bumper.position.set(0, 0.36, bz);
+                    carGroup.add(bumper);
+                });
+
+                const wheelOffsets = [
+                    [-0.92, 0.36, 1.15],
+                    [0.92, 0.36, 1.15],
+                    [-0.92, 0.36, -1.15],
+                    [0.92, 0.36, -1.15]
+                ];
+                wheelOffsets.forEach(([wx, wy, wz]) => {
+                    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.28, 18), tireMat);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(wx, wy, wz);
+                    wheel.castShadow = true;
+                    carGroup.add(wheel);
+                });
+
+                carGroup.position.set(cfg.x, cfg.y, cfg.z);
+                carGroup.rotation.y = cfg.rotY;
+
+                carGroup.traverse((obj) => {
+                    if (obj.isMesh) {
+                        obj.userData.vehicleId = cfg.id;
+                    }
+                });
+
+                scene.add(carGroup);
+                registerUsableVehicle(cfg.id, cfg.label, carGroup, true, 0.52);
+            });
+        }
+
+        function registerUsableVehicle(id, label, meshGroup, isCar, seatOffsetY = 0.2) {
+            if (scene) {
+                scene.updateMatrixWorld(true);
+            }
+            meshGroup.getWorldPosition(tmpWorldPos);
+            meshGroup.getWorldQuaternion(tmpWorldQuat);
+            tmpEuler.setFromQuaternion(tmpWorldQuat, 'YXZ');
+
+            meshGroup.traverse((obj) => {
+                if (obj.isMesh) {
+                    obj.userData.vehicleId = id;
+                }
+            });
+
+            usableVehicles.push({
+                id,
+                label,
+                group: meshGroup,
+                x: tmpWorldPos.x,
+                z: tmpWorldPos.z,
+                yaw: tmpEuler.y,
+                seatOffsetY,
+                isCar,
+                speed: 0
+            });
+        }
+
+        function findVehicleById(vehicleId) {
+            if (!vehicleId) return null;
+            return usableVehicles.find((v) => v.id === vehicleId) || null;
+        }
+
+        function showCarAgeMessage() {
+            if (carAgeDialogTimer) {
+                clearTimeout(carAgeDialogTimer);
+                carAgeDialogTimer = null;
+            }
+            setCinemaDialog(true, 'Voiture', 'reviens dans 6 ans!', false);
+            carAgeDialogTimer = setTimeout(() => {
+                if (!failedSequenceActive && !isInsideCinema) {
+                    setCinemaDialog(false);
+                }
+            }, 2600);
+        }
+
+        function syncCharacterWithActiveVehicle(vehicle, dt) {
+            if (!vehicle || !vehicle.group || !characterGroup) return;
+            characterGroup.position.x = vehicle.group.position.x;
+            characterGroup.position.z = vehicle.group.position.z;
+            const targetY = vehicle.group.position.y + vehicle.seatOffsetY;
+            characterGroup.position.y += (targetY - characterGroup.position.y) * Math.min(1, dt * 18);
+            characterGroup.rotation.y = vehicle.group.rotation.y;
+        }
+
+        function detachVehicleToSceneRoot(vehicle) {
+            if (!vehicle || !vehicle.group || !scene) return;
+            if (vehicle.group.parent === scene) return;
+
+            scene.updateMatrixWorld(true);
+            vehicle.group.getWorldPosition(tmpWorldPos);
+            vehicle.group.getWorldQuaternion(tmpWorldQuat);
+            tmpEuler.setFromQuaternion(tmpWorldQuat, 'YXZ');
+
+            const oldBoxIndex = obstacles3D.findIndex(
+                (b) => Math.hypot(b.cx - vehicle.x, b.cz - vehicle.z) < 0.25
+            );
+            if (oldBoxIndex !== -1) {
+                obstacles3D.splice(oldBoxIndex, 1);
+            }
+
+            if (vehicle.group.parent) {
+                vehicle.group.parent.remove(vehicle.group);
+            }
+            scene.add(vehicle.group);
+
+            vehicle.group.position.copy(tmpWorldPos);
+            vehicle.group.rotation.set(0, tmpEuler.y, 0);
+            vehicle.x = tmpWorldPos.x;
+            vehicle.z = tmpWorldPos.z;
+            vehicle.yaw = tmpEuler.y;
+        }
+
+        function enterVehicle(vehicle) {
+            if (!vehicle || !characterGroup || isInsideCinema || failedSequenceActive) return;
+
+            if (vehicle.isCar) {
+                showCarAgeMessage();
+                return;
+            }
+
+            detachVehicleToSceneRoot(vehicle);
+            activeVehicle = vehicle;
+            vehicle.speed = 0;
+
+            const exitBtn = document.getElementById('exit-vehicle-btn');
+            if (exitBtn) exitBtn.classList.remove('hidden');
+
+            const groundY = getGroundHeightAt(vehicle.group.position.x, vehicle.group.position.z);
+            vehicle.group.position.y = groundY;
+            syncCharacterWithActiveVehicle(vehicle, 1);
+            characterGroup.position.y = vehicle.group.position.y + vehicle.seatOffsetY;
+
+            targetLookAt.set(characterGroup.position.x, characterGroup.position.y + 1.35, characterGroup.position.z);
+            updateCameraPosition();
+
+            setCinemaDialog(
+                true,
+                vehicle.label,
+                `Vous êtes monté sur : ${vehicle.label}. ZQSD / WASD / Flèches pour diriger (Échap ou bouton rouge pour descendre).`,
+                false
+            );
+            if (carAgeDialogTimer) clearTimeout(carAgeDialogTimer);
+            carAgeDialogTimer = setTimeout(() => {
+                if (!failedSequenceActive && !isInsideCinema) {
+                    setCinemaDialog(false);
+                }
+            }, 2200);
+        }
+
+        function exitCurrentVehicle() {
+            if (!activeVehicle || !characterGroup) return;
+
+            const v = activeVehicle;
+            activeVehicle = null;
+            v.speed = 0;
+
+            const exitBtn = document.getElementById('exit-vehicle-btn');
+            if (exitBtn) exitBtn.classList.add('hidden');
+
+            const yaw = v.group.rotation.y;
+            const sideX = Math.cos(yaw) * 1.35;
+            const sideZ = -Math.sin(yaw) * 1.35;
+            const nextPos = {
+                x: Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, v.group.position.x + sideX)),
+                z: Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, v.group.position.z + sideZ))
+            };
+            applyObstaclesCollision(nextPos, CHARACTER_RADIUS);
+            characterGroup.position.x = nextPos.x;
+            characterGroup.position.z = nextPos.z;
+            characterGroup.position.y = getGroundHeightAt(nextPos.x, nextPos.z);
+            characterGroup.rotation.y = 0;
+            targetLookAt.set(characterGroup.position.x, characterGroup.position.y + 1.35, characterGroup.position.z);
+            updateCameraPosition();
+        }
+
+        function handleWorldClick(event) {
+            if (!camera || !scene || !renderer) return;
+            if (isInsideCinema || failedSequenceActive) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+
+            pointerNDC.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointerNDC.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(pointerNDC, camera);
+            const vehicleMeshes = [];
+            usableVehicles.forEach((v) => {
+                v.group.traverse((obj) => {
+                    if (obj.isMesh) vehicleMeshes.push(obj);
+                });
+            });
+
+            const hits = raycaster.intersectObjects(vehicleMeshes, false);
+            if (!hits.length) return;
+
+            const clickedId = hits[0].object?.userData?.vehicleId;
+            const vehicle = findVehicleById(clickedId);
+            if (!vehicle) return;
+
+            if (vehicle.isCar) {
+                showCarAgeMessage();
+                return;
+            }
+
+            if (activeVehicle && activeVehicle.id === vehicle.id) {
+                exitCurrentVehicle();
+            } else {
+                enterVehicle(vehicle);
+            }
+        }
+
+        function buildHeroHouseAndNeighborhood(baseY) {
+            const heroHouse = new THREE.Group();
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.72 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.55 });
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.45 });
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(6.2, 3.2, 5.4), wallMat);
+            body.position.set(0, 1.6, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            heroHouse.add(body);
+
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(4.7, 2.2, 4), roofMat);
+            roof.rotation.y = Math.PI / 4;
+            roof.position.set(0, 4.3, 0);
+            roof.castShadow = true;
+            heroHouse.add(roof);
+
+            const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.0, 0.16), doorMat);
+            door.position.set(0, 1.0, 2.75);
+            heroHouse.add(door);
+
+            const signTex = createSignTexture('MAISON DU HÉROS', '#f59e0b', '#0f172a', 'SWEAT JAUNE');
+            const sign = new THREE.Mesh(
+                new THREE.BoxGeometry(3.4, 0.65, 0.14),
+                new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.45 })
+            );
+            sign.position.set(0, 2.65, 2.76);
+            heroHouse.add(sign);
+
+            [-2.0, 2.0].forEach((wx) => {
+                const win = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.14), trimMat);
+                win.position.set(wx, 1.75, 2.75);
+                heroHouse.add(win);
+            });
+
+            heroHouse.position.set(12.5, baseY, 17.5);
+            heroHouse.rotation.y = -Math.PI / 2;
+            scene.add(heroHouse);
+            registerBoxObstacle(12.5, 17.5, 6.2, 5.4, -Math.PI / 2, 0.12);
+
+            const totalHouses = 2400;
+            const wallGeo = new THREE.BoxGeometry(3.6, 2.4, 3.2);
+            const roofGeo = new THREE.ConeGeometry(2.85, 1.5, 4);
+
+            const wallPalette = [0xf8fafc, 0xfef9c3, 0xe0f2fe, 0xfce7f3, 0xdcfce7, 0xffedd5];
+            const roofPalette = [0xb91c1c, 0x1e3a8a, 0x334155, 0x78350f, 0x0f766e];
+
+            const wallMatInst = new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05 });
+            const roofMatInst = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.1 });
+
+            const wallInstMesh = new THREE.InstancedMesh(wallGeo, wallMatInst, totalHouses);
+            const roofInstMesh = new THREE.InstancedMesh(roofGeo, roofMatInst, totalHouses);
+            wallInstMesh.receiveShadow = true;
+            roofInstMesh.castShadow = true;
+
+            const dummy = new THREE.Object3D();
+            const color = new THREE.Color();
+            let placed = 0;
+
+            for (let gx = -125; gx <= 125 && placed < totalHouses; gx += 5.2) {
+                for (let gz = -125; gz <= 125 && placed < totalHouses; gz += 5.2) {
+                    const jitterX = Math.sin(gx * 12.9898 + gz * 78.233) * 0.65;
+                    const jitterZ = Math.cos(gx * 45.164 + gz * 94.673) * 0.65;
+                    const hx = gx + jitterX;
+                    const hz = gz + jitterZ;
+
+                    if (Math.abs(hx) < 6.2 || Math.abs(hz) < 6.2) continue;
+                    if (Math.hypot(hx - 16.5, hz - (-16.5)) < 11.5) continue;
+                    if (Math.hypot(hx - (-14.5), hz - (-14.5)) < 11.5) continue;
+                    if (Math.hypot(hx - 11.5, hz - 11.5) < 7.0) continue;
+                    if (Math.hypot(hx - 12.5, hz - 17.5) < 6.5) continue;
+
+                    const hy = getGroundHeightAt(hx, hz);
+                    const rotY = ((placed * 1.1) % (Math.PI * 2));
+
+                    dummy.position.set(hx, hy + 1.2, hz);
+                    dummy.rotation.set(0, rotY, 0);
+                    dummy.scale.set(1, 1, 1);
+                    dummy.updateMatrix();
+                    wallInstMesh.setMatrixAt(placed, dummy.matrix);
+
+                    dummy.position.set(hx, hy + 3.15, hz);
+                    dummy.rotation.set(0, rotY + Math.PI / 4, 0);
+                    dummy.scale.set(1, 1, 1);
+                    dummy.updateMatrix();
+                    roofInstMesh.setMatrixAt(placed, dummy.matrix);
+
+                    color.setHex(wallPalette[placed % wallPalette.length]);
+                    wallInstMesh.setColorAt(placed, color);
+
+                    color.setHex(roofPalette[placed % roofPalette.length]);
+                    roofInstMesh.setColorAt(placed, color);
+
+                    placed++;
+                }
+            }
+
+            wallInstMesh.count = placed;
+            roofInstMesh.count = placed;
+            wallInstMesh.instanceMatrix.needsUpdate = true;
+            roofInstMesh.instanceMatrix.needsUpdate = true;
+            if (wallInstMesh.instanceColor) wallInstMesh.instanceColor.needsUpdate = true;
+            if (roofInstMesh.instanceColor) roofInstMesh.instanceColor.needsUpdate = true;
+
+            scene.add(wallInstMesh);
+            scene.add(roofInstMesh);
+        }
+
+        function createResidentSvgTexture(shirtHex, pantsHex, hairHex, hairStyleIndex) {
+            const hairStyles = [
+                `<polygon points="103,104 106,89 121,94" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                 <polygon points="118,86 121,62 142,72" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                 <polygon points="145,66 157,41 178,61" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                 <polygon points="180,61 198,41 213,67" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                 <polygon points="215,72 238,61 241,87" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                 <polygon points="239,91 261,89 254,108" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4.5" stroke-linejoin="round" />
+                 <path d="M 104 114 C 104 54, 256 54, 256 114 C 234 94, 208 106, 180 96 C 152 106, 126 94, 104 114 Z" fill="${hairHex}" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />`,
+                `<path d="M 102 118 C 98 46, 262 46, 258 118 C 236 102, 208 104, 180 100 C 152 104, 124 102, 102 118 Z" fill="${hairHex}" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />
+                 <path d="M 104 108 L 104 134" stroke="${hairHex}" stroke-width="11" stroke-linecap="round" />
+                 <path d="M 256 108 L 256 134" stroke="${hairHex}" stroke-width="11" stroke-linecap="round" />`,
+                `<path d="M 105 112 C 108 58, 252 58, 255 112 L 242 96 L 222 112 L 200 94 L 180 112 L 160 94 L 138 112 L 118 96 Z" fill="${hairHex}" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />`,
+                `<ellipse cx="180" cy="54" rx="22" ry="18" fill="${hairHex}" stroke="#0A0A0A" stroke-width="5" />
+                 <circle cx="180" cy="48" r="10" fill="${hairHex}" stroke="#0A0A0A" stroke-width="4" />
+                 <path d="M 106 112 C 110 64, 250 64, 254 112 C 224 94, 136 94, 106 112 Z" fill="${hairHex}" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />`,
+                `<path d="M 110 106 C 118 68, 242 68, 250 106 C 222 92, 198 92, 182 88 L 194 64 L 166 78 C 142 84, 122 92, 110 106 Z" fill="${hairHex}" stroke="#0A0A0A" stroke-width="5" stroke-linejoin="round" />`
+            ];
+
+            const hairSvg = hairStyles[hairStyleIndex % hairStyles.length];
+
+            const svg = `<svg viewBox="0 0 360 470" width="360" height="470" xmlns="http://www.w3.org/2000/svg">
+                <rect x="148" y="328" width="21" height="106" fill="${pantsHex}" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />
+                <rect x="191" y="328" width="21" height="106" fill="${pantsHex}" stroke="#0A0A0A" stroke-width="5.5" stroke-linejoin="round" />
+                <path d="M 136 443 C 136 434, 145 431, 169 431 L 169 443 Z" fill="#F1F5F9" stroke="#0A0A0A" stroke-width="4.5" />
+                <path d="M 191 443 L 191 431 C 215 431, 224 434, 224 443 Z" fill="#F1F5F9" stroke="#0A0A0A" stroke-width="4.5" />
+                <rect x="134" y="311" width="92" height="24" rx="12" fill="${pantsHex}" stroke="#0A0A0A" stroke-width="5.5" />
+                <rect x="129" y="182" width="102" height="142" rx="51" fill="${shirtHex}" stroke="#0A0A0A" stroke-width="6" />
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 131 215 C 110 236, 102 276, 104 314" fill="none" stroke="${shirtHex}" stroke-width="16" stroke-linecap="round" />
+                <circle cx="104" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+                <path d="M 229 215 C 250 236, 258 276, 256 314" fill="none" stroke="#0A0A0A" stroke-width="27" stroke-linecap="round" />
+                <path d="M 229 215 C 250 236, 258 276, 256 314" fill="none" stroke="${shirtHex}" stroke-width="16" stroke-linecap="round" />
+                <circle cx="256" cy="321" r="9.5" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="5" />
+                <ellipse cx="180" cy="126" rx="74" ry="70" fill="#FAD7B8" stroke="#0A0A0A" stroke-width="6.5" />
+                ${hairSvg}
+                <circle cx="158" cy="134" r="6" fill="#0A0A0A" />
+                <circle cx="202" cy="134" r="6" fill="#0A0A0A" />
+                <path d="M 167 160 C 175 168, 185 168, 193 160" fill="none" stroke="#0A0A0A" stroke-width="5" stroke-linecap="round" />
+            </svg>`;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 240;
+            canvas.height = 313;
+            const ctx = canvas.getContext('2d');
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+
+            const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                tex.needsUpdate = true;
+                URL.revokeObjectURL(url);
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+
+            return tex;
+        }
+
+        function buildTownResidents(baseY) {
+            const shirts = ['#ef4444', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#f97316', '#06b6d4', '#84cc16'];
+            const pants = ['#1e293b', '#1d4ed8', '#374151', '#7c2d12', '#0f766e', '#312e81'];
+            const hairs = ['#4a1e08', '#0f172a', '#d97706', '#7c2d12', '#94a3b8', '#b91c1c'];
+
+            const residentCount = 26;
+            for (let i = 0; i < residentCount; i++) {
+                const shirtHex = shirts[i % shirts.length];
+                const pantsHex = pants[(i * 2) % pants.length];
+                const hairHex = hairs[(i * 3) % hairs.length];
+                const hairStyleIndex = (i * 2 + Math.floor(i / 5)) % 5;
+
+                const tex = createResidentSvgTexture(shirtHex, pantsHex, hairHex, hairStyleIndex);
+                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: true });
+                const sprite = new THREE.Sprite(mat);
+
+                const h = 2.55;
+                const w = h * (360 / 470);
+                sprite.scale.set(w, h, 1);
+                sprite.position.set(0, h / 2, 0);
+
+                const resGroup = new THREE.Group();
+                resGroup.add(sprite);
+
+                const angle = (i / residentCount) * Math.PI * 2;
+                const dist = 10 + (i % 5) * 4.2;
+                const rx = Math.cos(angle) * dist;
+                const rz = Math.sin(angle) * dist;
+                resGroup.position.set(rx, getGroundHeightAt(rx, rz), rz);
+
+                scene.add(resGroup);
+
+                townResidents.push({
+                    group: resGroup,
+                    sprite,
+                    baseHeight: h,
+                    centerX: rx,
+                    centerZ: rz,
+                    walkRadius: 2.2 + (i % 4) * 1.1,
+                    speed: 0.75 + (i % 5) * 0.18,
+                    phase: i * 0.9
+                });
+            }
+        }
+
+        function updateTownResidents(dt, now) {
+            if (!townResidents.length) return;
+            const t = (now || 0) * 0.001;
+            for (let i = 0; i < townResidents.length; i++) {
+                const r = townResidents[i];
+                const ang = t * r.speed + r.phase;
+                const nx = r.centerX + Math.cos(ang) * r.walkRadius;
+                const nz = r.centerZ + Math.sin(ang) * r.walkRadius;
+                const vx = -Math.sin(ang);
+
+                r.group.position.x = nx;
+                r.group.position.z = nz;
+                r.group.position.y = getGroundHeightAt(nx, nz);
+
+                if (r.sprite) {
+                    const hop = Math.abs(Math.sin(t * 7.5 + r.phase)) * 0.08;
+                    r.sprite.position.y = (r.baseHeight / 2) + hop;
+                    r.sprite.material.rotation = Math.sin(t * 7.5 + r.phase) * 0.04;
+                    if (Math.abs(vx) > 0.08) {
+                        const baseW = r.baseHeight * (360 / 470);
+                        r.sprite.scale.x = vx < 0 ? -baseW : baseW;
+                    }
+                }
+            }
+        }
+
+        function syncSVGTo3DSprite() {
+            if (!characterSprite) return;
+            if (isRenderingTexture) {
+                pendingTextureUpdate = true;
+                return;
+            }
+            isRenderingTexture = true;
+
+            try {
+                const svgString = buildCleanSVGString();
+                if (!svgString) {
+                    isRenderingTexture = false;
+                    return;
+                }
+
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+
+                const img = new Image();
+                img.onload = function () {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 720;
+                        canvas.height = 940;
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        const newTex = new THREE.CanvasTexture(canvas);
+                        newTex.needsUpdate = true;
+
+                        characterSprite.material.map = newTex;
+                        characterSprite.material.needsUpdate = true;
+
+                        if (currentTexture) {
+                            currentTexture.dispose();
+                        }
+                        currentTexture = newTex;
+                    } catch (e) {
+                        console.error('Erreur rendu texture 3D :', e);
+                    } finally {
+                        URL.revokeObjectURL(url);
+                        isRenderingTexture = false;
+                        if (pendingTextureUpdate) {
+                            pendingTextureUpdate = false;
+                            syncSVGTo3DSprite();
+                        }
+                    }
+                };
+
+                img.onerror = function () {
+                    URL.revokeObjectURL(url);
+                    isRenderingTexture = false;
+                    if (pendingTextureUpdate) {
+                        pendingTextureUpdate = false;
+                        syncSVGTo3DSprite();
+                    }
+                };
+
+                img.src = url;
+            } catch (err) {
+                console.error('Erreur sérialisation SVG :', err);
+                isRenderingTexture = false;
+            }
+        }
+
+        function init3DWorld() {
+            const container = document.getElementById('canvas-container');
+            if (!container || typeof THREE === 'undefined') return;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdbeafe);
+            scene.fog = new THREE.Fog(0xdbeafe, 32, 95);
+
+            camera = new THREE.PerspectiveCamera(
+                45,
+                container.clientWidth / Math.max(container.clientHeight, 1),
+                0.1,
+                220
+            );
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x94a3b8, 0.9);
+            hemiLight.position.set(0, 40, 0);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            dirLight.position.set(16, 28, 18);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 2;
+            dirLight.shadow.camera.far = 85;
+            const d = 28;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            const groundBase = new THREE.Mesh(
+                new THREE.PlaneGeometry(280, 280),
+                new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.95 })
+            );
+            groundBase.rotation.x = -Math.PI / 2;
+            groundBase.position.y = 0;
+            groundBase.receiveShadow = true;
+            scene.add(groundBase);
+
+            buildRoadsAndSidewalksOnly();
+            buildCinemaBuilding(SIDEWALK_TOP_Y);
+            buildSchoolBuilding(SIDEWALK_TOP_Y);
+            buildSchoolFencing(SIDEWALK_TOP_Y);
+            buildParkingZone(SIDEWALK_TOP_Y);
+            buildDrivableCars(SIDEWALK_TOP_Y);
+            buildHeroHouseAndNeighborhood(SIDEWALK_TOP_Y);
+            buildTownResidents(SIDEWALK_TOP_Y);
+
+            characterGroup = new THREE.Group();
+            const startX = 6.5;
+            const startZ = 6.5;
+            const startY = getGroundHeightAt(startX, startZ);
+            characterGroup.position.set(startX, startY, startZ);
+
+            shadowPlane = new THREE.Mesh(
+                new THREE.CircleGeometry(0.62, 32),
+                new THREE.MeshBasicMaterial({
+                    color: 0x0f172a,
+                    transparent: true,
+                    opacity: 0.24,
+                    depthWrite: false
+                })
+            );
+            shadowPlane.rotation.x = -Math.PI / 2;
+            shadowPlane.position.y = 0.02;
+            characterGroup.add(shadowPlane);
+
+            const spriteMat = new THREE.SpriteMaterial({
+                transparent: true,
+                depthWrite: true
+            });
+            characterSprite = new THREE.Sprite(spriteMat);
+            const spriteHeight = 2.85;
+            const spriteWidth = spriteHeight * (360 / 470);
+            characterSprite.scale.set(spriteWidth, spriteHeight, 1);
+            characterSprite.position.set(0, spriteHeight / 2, 0);
+            characterGroup.add(characterSprite);
+
+            scene.add(characterGroup);
+
+            targetLookAt.set(startX, startY + 1.35, startZ);
+            updateCameraPosition();
+            syncSVGTo3DSprite();
+
+            window.addEventListener('resize', onWindowResize);
+
+            const domElem = renderer.domElement;
+            let pointerDownX = 0;
+            let pointerDownY = 0;
+
+            domElem.addEventListener('pointerdown', (e) => {
+                isPointerDown = true;
+                pointerDownX = e.clientX;
+                pointerDownY = e.clientY;
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isPointerDown) return;
+                const dx = e.clientX - lastPointerX;
+                const dy = e.clientY - lastPointerY;
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
+
+                spherical.theta -= dx * 0.0075;
+                spherical.phi = Math.max(0.25, Math.min(Math.PI * 0.48, spherical.phi - dy * 0.0065));
+                updateCameraPosition();
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                const movedDist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
+                if (isPointerDown && movedDist < 6 && e.target === domElem) {
+                    handleWorldClick(e);
+                }
+                isPointerDown = false;
+            });
+
+            domElem.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                spherical.radius = Math.max(2.6, Math.min(22, spherical.radius + e.deltaY * 0.004));
+                updateCameraPosition();
+            }, { passive: false });
+
+            window.addEventListener('keydown', (e) => {
+                const tag = document.activeElement?.tagName;
+                if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+                const k = e.key.toLowerCase();
+                if (k === 'escape') {
+                    if (activeVehicle) {
+                        exitCurrentVehicle();
+                        return;
+                    }
+                    const invPanel = document.getElementById('inventory-panel');
+                    if (invPanel && !invPanel.classList.contains('hidden')) {
+                        invPanel.classList.add('hidden');
+                        return;
+                    }
+                }
+                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'z', 'q', 's', 'd', 'w', 'a'].includes(k)) {
+                    if (k.startsWith('arrow')) e.preventDefault();
+                    pressedKeys.add(k);
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                pressedKeys.delete(e.key.toLowerCase());
+            });
+
+            window.addEventListener('blur', () => {
+                pressedKeys.clear();
+                isPointerDown = false;
+            });
+        }
+
+        function createSignTexture(title, bgHex, textHex, subtitle = '') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 160;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = bgHex;
+            ctx.fillRect(0, 0, 640, 160);
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(8, 8, 624, 144);
+
+            ctx.fillStyle = textHex;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '800 38px Inter, sans-serif';
+            ctx.fillText(title, 320, subtitle ? 62 : 82);
+
+            if (subtitle) {
+                ctx.font = '700 20px Inter, sans-serif';
+                ctx.globalAlpha = 0.9;
+                ctx.fillText(subtitle, 320, 114);
+                ctx.globalAlpha = 1;
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function createUpcomingMoviePosterTexture(onImageLoaded) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 640;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 512, 640);
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(10, 10, 492, 620);
+
+            ctx.fillStyle = '#facc15';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '900 34px Inter, sans-serif';
+            ctx.fillText('Prochain Film, GRATUIT', 256, 56);
+
+            const imgX = 56;
+            const imgY = 98;
+            const imgW = 400;
+            const imgH = 390;
+
+            const grad = ctx.createLinearGradient(imgX, imgY, imgX, imgY + imgH);
+            grad.addColorStop(0, '#1e3a8a');
+            grad.addColorStop(0.55, '#312e81');
+            grad.addColorStop(1, '#090d16');
+            ctx.fillStyle = grad;
+            ctx.fillRect(imgX, imgY, imgW, imgH);
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = '900 44px Inter, sans-serif';
+            ctx.fillText('18+', 256, 220);
+
+            ctx.fillStyle = '#fde047';
+            ctx.font = '800 24px Inter, sans-serif';
+            ctx.fillText('SÉANCE MINUIT', 256, 285);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '600 18px Inter, sans-serif';
+            ctx.fillText('DRAME PSYCHOLOGIQUE', 256, 330);
+
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(imgX, imgY, imgW, imgH);
+
+            ctx.fillStyle = '#fecaca';
+            ctx.font = '800 20px Inter, sans-serif';
+            ctx.fillText('interdit a moins de 18 ans que même', 256, 534);
+            ctx.fillText('les adultes vont pleurer', 256, 568);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+
+            const posterImg = new Image();
+            posterImg.crossOrigin = 'anonymous';
+            posterImg.onload = () => {
+                ctx.drawImage(posterImg, imgX, imgY, imgW, imgH);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(imgX, imgY, imgW, imgH);
+                tex.needsUpdate = true;
+                if (typeof onImageLoaded === 'function') {
+                    onImageLoaded();
+                }
+            };
+            posterImg.onerror = () => {
+                if (typeof onImageLoaded === 'function') {
+                    onImageLoaded();
+                }
+            };
+            posterImg.src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX_LDjQR_BeGMXmNVeoJKlWIlGhkxNDmXSrIFDIG79QQ&s=10';
+
+            return tex;
+        }
+
+        function getGroundHeightAt(x, z) {
+            if (isInsideCinema) {
+                return SIDEWALK_TOP_Y + 0.04;
+            }
+            const onRoadNS = Math.abs(x) < ROAD_HALF_WIDTH;
+            const onRoadEW = Math.abs(z) < ROAD_HALF_WIDTH;
+            if (onRoadNS || onRoadEW) {
+                return ROAD_TOP_Y;
+            }
+            return SIDEWALK_TOP_Y;
+        }
+
+        function updateCameraPosition() {
+            if (!camera) return;
+            const sinPhi = Math.sin(spherical.phi);
+            const cosPhi = Math.cos(spherical.phi);
+            const sinTheta = Math.sin(spherical.theta);
+            const cosTheta = Math.cos(spherical.theta);
+
+            camera.position.x = targetLookAt.x + spherical.radius * sinPhi * sinTheta;
+            camera.position.y = targetLookAt.y + spherical.radius * cosPhi;
+            camera.position.z = targetLookAt.z + spherical.radius * sinPhi * cosTheta;
+            camera.lookAt(targetLookAt);
+        }
+
+        function resetCamera() {
+            spherical.radius = 5.2;
+            spherical.theta = 0.35;
+            spherical.phi = 1.26;
+            if (characterGroup) {
+                targetLookAt.set(characterGroup.position.x, characterGroup.position.y + 1.35, characterGroup.position.z);
+            }
+            updateCameraPosition();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !camera || !renderer) return;
+            camera.aspect = container.clientWidth / Math.max(container.clientHeight, 1);
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function setCinemaDialog(visible, speaker = '', message = '', showFailedStamp = false) {
+            const banner = document.getElementById('cinema-dialog-banner');
+            const speakerEl = document.getElementById('cinema-dialog-speaker');
+            const textEl = document.getElementById('cinema-dialog-text');
+            const stampEl = document.getElementById('cinema-failed-stamp');
+            if (!banner || !speakerEl || !textEl || !stampEl) return;
+
+            if (visible) {
+                banner.classList.remove('hidden');
+                speakerEl.textContent = speaker;
+                textEl.textContent = message;
+                if (showFailedStamp) {
+                    stampEl.classList.remove('hidden');
+                } else {
+                    stampEl.classList.add('hidden');
+                }
+            } else {
+                banner.classList.add('hidden');
+                stampEl.classList.add('hidden');
+            }
+        }
+
+        function triggerIdCheckSequence() {
+            if (!isInsideCinema || failedSequenceActive) return;
+
+            const showIdBtn = document.getElementById('show-id-btn');
+            if (showIdBtn) showIdBtn.classList.add('hidden');
+
+            failedSequenceActive = true;
+            failedSequenceTimer = 0;
+            failedSequencePhase = 1;
+            idCheckResolved = true;
+
+            if (stickerPeelTimer) {
+                clearTimeout(stickerPeelTimer);
+                stickerPeelTimer = null;
+            }
+
+            const sticker = document.getElementById('sticker-30ans');
+            if (sticker) {
+                sticker.classList.remove('sticker-fall');
+                sticker.classList.remove('hidden');
+            }
+
+            highlightInventoryItem('idcard');
+            setFace('happy');
+            setArms('idcard');
+            setCinemaDialog(
+                true,
+                'Personnage au sweat jaune',
+                "Regardez, j'ai 30 ans ! Laissez-moi entrer voir le film interdit aux moins de 18 ans !",
+                false
+            );
+        }
+
+        function updateFailedIdSequence(dt) {
+            if (!failedSequenceActive) return;
+
+            failedSequenceTimer += dt;
+
+            if (failedSequencePhase === 1 && failedSequenceTimer >= 1.5) {
+                failedSequencePhase = 2;
+                revealRealAgeIn3D(null);
+                setCinemaDialog(
+                    true,
+                    'Employée du Cinéma',
+                    'Attendez une seconde... le "30" tombe et laisse place au "12" ! Vous avez 12 ANS !',
+                    false
+                );
+            } else if (failedSequencePhase === 2 && failedSequenceTimer >= 3.2) {
+                failedSequencePhase = 3;
+                setFace('sad');
+                setCinemaDialog(
+                    true,
+                    'Employée du Cinéma',
+                    'Refusé ! Revenez dans 18 ans... (Failed Miserably)',
+                    true
+                );
+            } else if (failedSequencePhase === 3 && failedSequenceTimer >= 5.2) {
+                failedSequenceActive = false;
+                failedSequencePhase = 0;
+                failedSequenceTimer = 0;
+                setCinemaDialog(false);
+
+                setArms('neutral');
+                setFace('grumpy', true);
+            }
+        }
+
+        function updateCinemaDoorAndEntry(dt) {
+            if (!characterGroup || !cinemaDoorPivot) return;
+
+            if (cinemaEntryCooldown > 0) {
+                cinemaEntryCooldown = Math.max(0, cinemaEntryCooldown - dt);
+            }
+
+            const distToDoor = Math.hypot(
+                characterGroup.position.x - cinemaDoorWorldPos.x,
+                characterGroup.position.z - cinemaDoorWorldPos.z
+            );
+
+            if (cinemaEntryCooldown <= 0 && distToDoor < 2.2) {
+                if (!isInsideCinema) {
+                    isInsideCinema = true;
+                    idCheckPrompted = false;
+                    idCheckResolved = false;
+                    cinemaEntryCooldown = 0.85;
+                    const dx = cinemaInteriorSpawnPos.x - characterGroup.position.x;
+                    const dz = cinemaInteriorSpawnPos.z - characterGroup.position.z;
+                    characterGroup.position.x = cinemaInteriorSpawnPos.x;
+                    characterGroup.position.z = cinemaInteriorSpawnPos.z;
+                    targetLookAt.x += dx;
+                    targetLookAt.z += dz;
+                    updateCameraPosition();
+                } else {
+                    isInsideCinema = false;
+                    idCheckPrompted = false;
+                    failedSequenceActive = false;
+                    cinemaEntryCooldown = 0.85;
+                    setCinemaDialog(false);
+                    const btn = document.getElementById('show-id-btn');
+                    if (btn) btn.classList.add('hidden');
+                    const dx = cinemaExteriorExitPos.x - characterGroup.position.x;
+                    const dz = cinemaExteriorExitPos.z - characterGroup.position.z;
+                    characterGroup.position.x = cinemaExteriorExitPos.x;
+                    characterGroup.position.z = cinemaExteriorExitPos.z;
+                    targetLookAt.x += dx;
+                    targetLookAt.z += dz;
+                    updateCameraPosition();
+                }
+            }
+
+            const showIdBtn = document.getElementById('show-id-btn');
+            if (isInsideCinema && !failedSequenceActive) {
+                const distToEmployee = Math.hypot(
+                    characterGroup.position.x - cinemaDoorWorldPos.x,
+                    characterGroup.position.z - cinemaDoorWorldPos.z
+                );
+                if (!idCheckPrompted && distToEmployee > 0.6 && !cinemaRoomUnlockedBySword) {
+                    idCheckPrompted = true;
+                    setCinemaDialog(
+                        true,
+                        'Employée du Cinéma',
+                        "Halte ! Film interdit aux moins de 18 ans : montrez votre carte d'ID avant d'entrer dans la salle.",
+                        false
+                    );
+                }
+                if (showIdBtn) {
+                    if (idCheckPrompted && !idCheckResolved && !cinemaRoomUnlockedBySword) {
+                        showIdBtn.classList.remove('hidden');
+                    } else {
+                        showIdBtn.classList.add('hidden');
+                    }
+                }
+
+                const forceDoorBtn = document.getElementById('force-door-cinema-btn');
+                const trancBtn = document.getElementById('tranc-cinema-btn');
+                const selectArms = document.getElementById('select-arms');
+                const hasSwordEquipped = selectArms && selectArms.value === 'sword';
+                const showSwordChoices = Boolean(!cinemaRoomUnlockedBySword && (idCheckResolved || hasSwordEquipped));
+
+                if (forceDoorBtn) {
+                    if (showSwordChoices) {
+                        forceDoorBtn.classList.remove('hidden');
+                    } else {
+                        forceDoorBtn.classList.add('hidden');
+                    }
+                }
+                if (trancBtn) {
+                    if (showSwordChoices) {
+                        trancBtn.classList.remove('hidden');
+                    } else {
+                        trancBtn.classList.add('hidden');
+                    }
+                }
+            } else {
+                if (showIdBtn) showIdBtn.classList.add('hidden');
+                const forceDoorBtn = document.getElementById('force-door-cinema-btn');
+                if (forceDoorBtn) forceDoorBtn.classList.add('hidden');
+                const trancBtn = document.getElementById('tranc-cinema-btn');
+                if (trancBtn) trancBtn.classList.add('hidden');
+            }
+
+            updateFailedIdSequence(dt);
+
+            const targetAngle = (distToDoor < 3.5 || isInsideCinema) ? -Math.PI * 0.52 : 0;
+            cinemaDoorPivot.rotation.y += (targetAngle - cinemaDoorPivot.rotation.y) * Math.min(1, dt * 8);
+
+            if (cinemaInnerDoorPivot) {
+                const targetInnerAngle = cinemaRoomUnlockedBySword ? -Math.PI * 0.55 : 0;
+                cinemaInnerDoorPivot.rotation.y += (targetInnerAngle - cinemaInnerDoorPivot.rotation.y) * Math.min(1, dt * 8);
+            }
+        }
+
+        function updateCharacterMovement(dt) {
+            if (!characterGroup) return false;
+
+            if (failedSequenceActive) {
+                updateCinemaDoorAndEntry(dt);
+                return false;
+            }
+
+            let moveForward = 0;
+            let moveRight = 0;
+
+            if (pressedKeys.has('arrowup') || pressedKeys.has('z') || pressedKeys.has('w')) moveForward += 1;
+            if (pressedKeys.has('arrowdown') || pressedKeys.has('s')) moveForward -= 1;
+            if (pressedKeys.has('arrowright') || pressedKeys.has('d')) moveRight += 1;
+            if (pressedKeys.has('arrowleft') || pressedKeys.has('q') || pressedKeys.has('a')) moveRight -= 1;
+
+            if (activeVehicle) {
+                detachVehicleToSceneRoot(activeVehicle);
+
+                const prevX = characterGroup.position.x;
+                const prevY = characterGroup.position.y;
+                const prevZ = characterGroup.position.z;
+
+                if (moveForward !== 0 || moveRight !== 0) {
+                    const forwardX = -Math.sin(spherical.theta);
+                    const forwardZ = -Math.cos(spherical.theta);
+                    const rightX = Math.cos(spherical.theta);
+                    const rightZ = -Math.sin(spherical.theta);
+
+                    let dirX = forwardX * moveForward + rightX * moveRight;
+                    let dirZ = forwardZ * moveForward + rightZ * moveRight;
+                    const len = Math.hypot(dirX, dirZ);
+
+                    if (len > 0) {
+                        dirX /= len;
+                        dirZ /= len;
+
+                        const desiredYaw = Math.atan2(dirX, dirZ);
+                        let deltaYaw = desiredYaw - activeVehicle.group.rotation.y;
+                        while (deltaYaw > Math.PI) deltaYaw -= Math.PI * 2;
+                        while (deltaYaw < -Math.PI) deltaYaw += Math.PI * 2;
+
+                        const turnRate = 10.5;
+                        activeVehicle.group.rotation.y += deltaYaw * Math.min(1, dt * turnRate);
+
+                        const alignFactor = Math.max(0.25, Math.cos(deltaYaw * 0.65));
+                        const driveSpeed = (activeVehicle.id === 'electric_scooter' ? 9.5 : 7.5) * alignFactor;
+                        activeVehicle.speed = driveSpeed;
+
+                        const moveX = Math.sin(activeVehicle.group.rotation.y) * driveSpeed * dt;
+                        const moveZ = Math.cos(activeVehicle.group.rotation.y) * driveSpeed * dt;
+
+                        const nextPos = {
+                            x: Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, activeVehicle.group.position.x + moveX)),
+                            z: Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, activeVehicle.group.position.z + moveZ))
+                        };
+
+                        const selfBoxIndex = obstacles3D.findIndex(
+                            (b) => Math.hypot(b.cx - activeVehicle.x, b.cz - activeVehicle.z) < 0.25
+                        );
+                        let savedSelfBox = null;
+                        if (selfBoxIndex !== -1) {
+                            savedSelfBox = obstacles3D.splice(selfBoxIndex, 1)[0];
+                        }
+
+                        applyObstaclesCollision(nextPos, CHARACTER_RADIUS);
+
+                        if (savedSelfBox) {
+                            savedSelfBox.cx = nextPos.x;
+                            savedSelfBox.cz = nextPos.z;
+                            savedSelfBox.rotY = activeVehicle.group.rotation.y;
+                            obstacles3D.push(savedSelfBox);
+                        }
+
+                        activeVehicle.group.position.x = nextPos.x;
+                        activeVehicle.group.position.z = nextPos.z;
+                        activeVehicle.x = nextPos.x;
+                        activeVehicle.z = nextPos.z;
+                    }
+                } else {
+                    activeVehicle.speed = 0;
+                }
+
+                const vGroundY = getGroundHeightAt(activeVehicle.group.position.x, activeVehicle.group.position.z);
+                activeVehicle.group.position.y += (vGroundY - activeVehicle.group.position.y) * Math.min(1, dt * 18);
+
+                syncCharacterWithActiveVehicle(activeVehicle, dt);
+
+                targetLookAt.x += characterGroup.position.x - prevX;
+                targetLookAt.z += characterGroup.position.z - prevZ;
+                const desiredLookY = characterGroup.position.y + 1.35;
+                targetLookAt.y += (desiredLookY - targetLookAt.y) * Math.min(1, dt * 10);
+                if (
+                    Math.abs(characterGroup.position.x - prevX) > 1e-5 ||
+                    Math.abs(characterGroup.position.z - prevZ) > 1e-5 ||
+                    Math.abs(characterGroup.position.y - prevY) > 1e-5
+                ) {
+                    updateCameraPosition();
+                }
+
+                return (moveForward !== 0 || moveRight !== 0);
+            }
+
+            let moved = false;
+
+            if (moveForward !== 0 || moveRight !== 0) {
+                const forwardX = -Math.sin(spherical.theta);
+                const forwardZ = -Math.cos(spherical.theta);
+                const rightX = Math.cos(spherical.theta);
+                const rightZ = -Math.sin(spherical.theta);
+
+                let dirX = forwardX * moveForward + rightX * moveRight;
+                let dirZ = forwardZ * moveForward + rightZ * moveRight;
+
+                const len = Math.hypot(dirX, dirZ);
+                if (len > 0) {
+                    dirX /= len;
+                    dirZ /= len;
+
+                    const prevX = characterGroup.position.x;
+                    const prevZ = characterGroup.position.z;
+
+                    const nextX = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, prevX + dirX * MOVE_SPEED * dt));
+                    const nextZ = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, prevZ + dirZ * MOVE_SPEED * dt));
+
+                    const resolvedPos = { x: nextX, z: nextZ };
+                    applyObstaclesCollision(resolvedPos, CHARACTER_RADIUS);
+                    resolvedPos.x = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, resolvedPos.x));
+                    resolvedPos.z = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, resolvedPos.z));
+
+                    characterGroup.position.x = resolvedPos.x;
+                    characterGroup.position.z = resolvedPos.z;
+
+                    const deltaX = characterGroup.position.x - prevX;
+                    const deltaZ = characterGroup.position.z - prevZ;
+                    targetLookAt.x += deltaX;
+                    targetLookAt.z += deltaZ;
+                    moved = true;
+                }
+            }
+
+            updateCinemaDoorAndEntry(dt);
+
+            const targetGroundY = getGroundHeightAt(characterGroup.position.x, characterGroup.position.z);
+            characterGroup.position.y += (targetGroundY - characterGroup.position.y) * Math.min(1, dt * 18);
+
+            const desiredLookY = characterGroup.position.y + 1.35;
+            targetLookAt.y += (desiredLookY - targetLookAt.y) * Math.min(1, dt * 10);
+
+            if (moved || Math.abs(targetLookAt.y - desiredLookY) > 0.001) {
+                updateCameraPosition();
+            }
+
+            return (moveForward !== 0 || moveRight !== 0);
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            const now = time || 0;
+            const dt = lastFrameTime > 0 ? Math.min(0.05, (now - lastFrameTime) / 1000) : 0.016;
+            lastFrameTime = now;
+
+            const isMoving = updateCharacterMovement(dt);
+            updatePoliceArrestSequence(dt, now);
+            updateCinemaFilmAnimation(now);
+            updateTownResidents(dt, now);
+
+            if (cinemaEmployeeGroup && isInsideCinema) {
+                const baseEmpY = cinemaEmployeeGroup.rotation.z < -0.2 ? -0.14 : 0.04;
+                cinemaEmployeeGroup.position.y = baseEmpY + Math.sin(now * 0.003) * 0.015;
+            }
+
+            if (policePeuLissesGroup && policePeuLissesArrived && policeArrestPhase === 'none') {
+                policePeuLissesGroup.position.y =
+                    getGroundHeightAt(policePeuLissesGroup.position.x, policePeuLissesGroup.position.z) +
+                    Math.abs(Math.sin(now * 0.008)) * 0.06;
+                if (policePeuLissesGroup.userData && policePeuLissesGroup.userData.sirenMat) {
+                    const blink = Math.floor(now / 160) % 2 === 0;
+                    policePeuLissesGroup.userData.sirenMat.color.setHex(blink ? 0x38bdf8 : 0xf43f5e);
+                }
+            }
+
+            if (swordSlashBeam) {
+                swordSlashBeam.scale.multiplyScalar(1.03);
+                swordSlashBeam.material.opacity = Math.max(0, swordSlashBeam.material.opacity - dt * 2.2);
+            }
+
+            updateTrancParticlesAndDecals(dt);
+
+            if (characterSprite) {
+                const freq = isMoving ? 0.014 : 0.0024;
+                const amp = isMoving ? 0.075 : 0.03;
+                const bob = Math.sin(now * freq) * amp;
+                characterSprite.position.y = (2.85 / 2) + bob;
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            try {
+                init3DWorld();
+                lastFrameTime = performance.now();
+                animate(lastFrameTime);
+            } catch (err) {
+                console.error("Erreur lors de l'initialisation du monde 3D :", err);
+            }
+        });
+    </script>
+</body>
+</html>
